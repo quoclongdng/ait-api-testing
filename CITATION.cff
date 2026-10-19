@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software or its data, please cite it as below."
+title: "AI Testing Platform (AIT): rule-based, LLM-based and hybrid REST API test generation"
+type: software
+authors:
+  - family-names: Nguyen
+    given-names: Quoc Long
+    email: nguyenquoclong1@dtu.edu.vn
+    affiliation: "School of Data & Artificial Intelligence, Duy Tan University, Da Nang, Vietnam"
+version: "1.0-paper"
+date-released: "2026-10-19"
+license: MIT
+keywords:
+  - REST API testing
+  - test generation
+  - large language models
+  - OpenAPI
+  - seeded faults
+abstract: >-
+  Platform that generates, executes and evaluates REST API test cases from an OpenAPI 3.x
+  specification with rule-based, LLM-based (local models) and hybrid strategies and a deterministic
+  oracle, with three benchmark APIs containing 32 seeded faults and the data of the accompanying paper
+  "Rules First, LLMs Second: Rule-Based, LLM-Based and Hybrid REST API Test Generation with Local
+  Models and a Deterministic Oracle".
