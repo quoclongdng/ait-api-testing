@@ -1,0 +1,191 @@
+version: "1.0"
+benchmark: "appointment-booking"
+name: "Appointment Booking Benchmark API"
+base_url: "http://appointment-booking:8000"
+total_bugs: 10
+# ADR-0006: synthetic sandbox credentials (the public fixture tokens of app/auth.py, not secrets).
+# Experiments snapshot this block; the executor sends `Authorization: Bearer {{auth_token_<role>}}`
+# to secured operations unless a case sets the header itself or is an AUTH case.
+auth:
+  scheme: "bearer"
+  default_role: "patient"
+  roles:
+    patient:
+      token: "patient-alice-token"
+      description: "PATIENT alice (patient_id 1)"
+    patient_bob:
+      token: "patient-bob-token"
+      description: "PATIENT bob (patient_id 2), a second patient for ownership checks"
+    doctor:
+      token: "doctor-carol-token"
+      description: "DOCTOR carol (doctor_id 101), may see and manage every appointment"
+    admin:
+      token: "admin-token"
+      description: "ADMIN (user_id 999), may see and manage every appointment"
+# ADR-0006 / S11-01: business rules a tester can read in openapi.yaml or README (expected clean
+# behaviour, never bug answers). One or two rules per operation, covering operations with and
+# without seeded bugs alike; they name only paths, status codes and error codes found in the
+# spec/README (checked by benchmark/tools/ground_truth_fixture.py). Only LLM/HYBRID read them.
+business_rules:
+  - code: "BR-AB-001"
+    method: "GET"
+    path: "/departments"
+    description: "The department catalog is public (no token needed) and lists every department with id, name, code and description."
+  - code: "BR-AB-002"
+    method: "GET"
+    path: "/departments/{department_id}"
+    description: "An unknown department returns 404 with a JSON error body."
+  - code: "BR-AB-003"
+    method: "GET"
+    path: "/doctors"
+    description: "The optional department_id filter returns only the doctors of that department."
+  - code: "BR-AB-004"
+    method: "GET"
+    path: "/doctors/{doctor_id}"
+    description: "An unknown doctor returns 404; every doctor has a max_daily_quota (the clinic limit is 20 appointments per doctor per day)."
+  - code: "BR-AB-005"
+    method: "GET"
+    path: "/doctors/{doctor_id}/slots"
+    description: "The date query must be a real calendar date in YYYY-MM-DD (otherwise 422); a slot that is already booked has is_available false."
+  - code: "BR-AB-006"
+    method: "GET"
+    path: "/appointments"
+    description: "A patient sees only their own appointments."
+  - code: "BR-AB-007"
+    method: "POST"
+    path: "/appointments"
+    description: "The clinic is closed on Sundays and on the fixed holidays 2026-12-25 and 2026-01-01; booking such a day is rejected with 409."
+  - code: "BR-AB-008"
+    method: "POST"
+    path: "/appointments"
+    description: "A doctor cannot have two appointments in the same slot of the same day and accepts at most 20 appointments per day; both conflicts return 409."
+  - code: "BR-AB-009"
+    method: "PATCH"
+    path: "/appointments/{appointment_id}"
+    description: "An appointment can be rescheduled only at least 24 hours before it starts (otherwise 409); the sandbox clock is fixed at 2026-10-10T08:00:00Z."
+  - code: "BR-AB-010"
+    method: "DELETE"
+    path: "/appointments/{appointment_id}"
+    description: "Cancelling returns 204 and removes the appointment; a patient may cancel only their own appointments (another patient's -> 403) while DOCTOR and ADMIN may cancel any."
+bugs:
+  - code: "BUG-023"
+    method: "POST"
+    path: "/appointments"
+    category: "BOUNDARY_ERROR"
+    toggle_env: "BUG_023"
+    description: "Allows booking an appointment in the past (appointment_date < today)"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when appointment date is in the past"
+    actual_bug_behavior: "HTTP 201 Created accepting past appointment date"
+    oracle_assertion:
+      type: "status"
+      equals: 422
+
+  - code: "BUG-024"
+    method: "POST"
+    path: "/appointments"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_024"
+    description: "Allows double booking for the same doctor and same time slot"
+    expected_clean_behavior: "HTTP 409 Conflict with SLOT_ALREADY_BOOKED"
+    actual_bug_behavior: "HTTP 201 Created creating duplicate booking on occupied slot"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-025"
+    method: "POST"
+    path: "/appointments"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_025"
+    description: "Allows booking an appointment on closed clinic days or public holidays"
+    expected_clean_behavior: "HTTP 409 Conflict with CLINIC_CLOSED"
+    actual_bug_behavior: "HTTP 201 Created allowing appointments on Sundays or holidays"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-026"
+    method: "POST"
+    path: "/appointments"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_026"
+    description: "Slot conflict triggers unhandled HTTP 500 error instead of HTTP 409 Conflict"
+    expected_clean_behavior: "HTTP 409 Conflict with SLOT_ALREADY_BOOKED"
+    actual_bug_behavior: "HTTP 500 Internal Server Error (server crash)"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-027"
+    method: "PATCH"
+    path: "/appointments/{appointment_id}"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_027"
+    description: "Allows rescheduling an appointment when remaining time is less than 24 hours"
+    expected_clean_behavior: "HTTP 409 Conflict with RESCHEDULE_WINDOW_EXPIRED"
+    actual_bug_behavior: "HTTP 200 OK allowing late rescheduling"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-028"
+    method: "POST"
+    path: "/appointments"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_028"
+    description: "Allows doctor daily appointments count to exceed maximum daily quota (20)"
+    expected_clean_behavior: "HTTP 409 Conflict with DOCTOR_QUOTA_EXCEEDED"
+    actual_bug_behavior: "HTTP 201 Created booking beyond doctor's quota limit"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-029"
+    method: "GET"
+    path: "/doctors/{doctor_id}/slots"
+    category: "SCHEMA_MISMATCH"
+    toggle_env: "BUG_029"
+    description: "Time slots return start/end times in invalid non-ISO 8601 datetime format"
+    expected_clean_behavior: "Response slots start_time/end_time adhere strictly to ISO 8601"
+    actual_bug_behavior: "Response slots return formatted string violating ISO 8601 pattern"
+    oracle_assertion:
+      type: "json_path"
+      path: "$[0].start_time"
+      op: "matches"
+      value: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+
+  - code: "BUG-030"
+    method: "DELETE"
+    path: "/appointments/{appointment_id}"
+    category: "AUTH_ERROR"
+    toggle_env: "BUG_030"
+    description: "IDOR: Patient A can cancel Patient B's appointment without doctor/admin permission"
+    expected_clean_behavior: "HTTP 403 Forbidden with FORBIDDEN"
+    actual_bug_behavior: "HTTP 204 No Content allowing unauthorized cancellation"
+    oracle_assertion:
+      type: "status"
+      equals: 403
+
+  - code: "BUG-031"
+    method: "GET"
+    path: "/departments/{department_id}"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_031"
+    description: "Non-existent department ID returns HTTP 400 with text/html instead of HTTP 404 JSON"
+    expected_clean_behavior: "HTTP 404 Not Found with JSON error body"
+    actual_bug_behavior: "HTTP 400 Bad Request with text/html content type"
+    oracle_assertion:
+      type: "status"
+      equals: 404
+
+  - code: "BUG-032"
+    method: "POST"
+    path: "/appointments"
+    category: "VALIDATION_MISSING"
+    toggle_env: "BUG_032"
+    description: "Fails to validate patient phone number format (accepts invalid non-phone strings)"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when phone number format is invalid"
+    actual_bug_behavior: "HTTP 201 Created accepting arbitrary phone string"
+    oracle_assertion:
+      type: "status"
+      equals: 422

@@ -1,0 +1,87 @@
+{
+  "_comment": "Shared cross-check fixture (S10-01): benchmark/runner _calculate_metrics and web SummarizeRunnerResultAction must report the same per-repetition mean/stddev for these raw repetitions.",
+  "id": "crosscheck",
+  "name": "metrics-crosscheck",
+  "benchmark": "simple-store",
+  "strategy": "LLM",
+  "status": "COMPLETED",
+  "repetitions_data": [
+    {
+      "repetition": 1,
+      "seed": 42,
+      "total_cases": 10,
+      "clean_pass_count": 8,
+      "clean_fail_count": 2,
+      "clean_error_count": 0,
+      "bugs_total": 10,
+      "bugs_detected": 1,
+      "detections": [
+        {
+          "bug_code": "BUG-001",
+          "category": "VALIDATION_MISSING",
+          "detected": true,
+          "detecting_case_ids": [
+            "c-1"
+          ],
+          "clean_verdicts": {},
+          "bug_verdicts": {}
+        }
+      ]
+    },
+    {
+      "repetition": 2,
+      "seed": 1024,
+      "total_cases": 10,
+      "clean_pass_count": 6,
+      "clean_fail_count": 2,
+      "clean_error_count": 2,
+      "bugs_total": 10,
+      "bugs_detected": 0,
+      "detections": [
+        {
+          "bug_code": "BUG-001",
+          "category": "VALIDATION_MISSING",
+          "detected": false,
+          "detecting_case_ids": [],
+          "clean_verdicts": {},
+          "bug_verdicts": {}
+        }
+      ]
+    },
+    {
+      "repetition": 3,
+      "seed": 2026,
+      "total_cases": 5,
+      "clean_pass_count": 5,
+      "clean_fail_count": 0,
+      "clean_error_count": 0,
+      "bugs_total": 10,
+      "bugs_detected": 0,
+      "detections": [
+        {
+          "bug_code": "BUG-001",
+          "category": "VALIDATION_MISSING",
+          "detected": false,
+          "detecting_case_ids": [],
+          "clean_verdicts": {},
+          "bug_verdicts": {}
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "metrics": {
+      "bug_detection_rate": 0.0333,
+      "executable_rate": 0.9333,
+      "false_positive_rate": 0.15,
+      "mutation_score": 0.0333
+    },
+    "stddev": {
+      "bug_detection_rate": 0.0577,
+      "executable_rate": 0.1155,
+      "false_positive_rate": 0.1323,
+      "mutation_score": 0.0577
+    },
+    "ever_detected_rate": 0.1
+  }
+}

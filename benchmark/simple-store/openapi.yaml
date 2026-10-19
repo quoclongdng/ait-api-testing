@@ -1,0 +1,618 @@
+openapi: 3.1.0
+info:
+  title: Simple Store Benchmark API
+  description: 'Benchmark #1 sandbox REST API for AI Testing Platform (AIT). Provides
+    product catalog, categories, and inventory management endpoints.'
+  version: 1.0.0
+servers:
+  - url: http://localhost:8002
+    description: Sandbox host port
+  - url: http://benchmark:8000
+    description: Internal docker network
+security: []
+paths:
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health check
+      description: Check the operational health of the simple-store service.
+      operationId: get_health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /categories:
+    post:
+      tags:
+      - Categories
+      summary: Create category
+      description: Create a new product category with a unique slug.
+      operationId: create_category_categories_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '409':
+          description: Duplicate category slug
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+    get:
+      tags:
+      - Categories
+      summary: List categories
+      description: Retrieve a paginated list of product categories.
+      operationId: list_categories_categories_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Maximum categories to return
+          default: 50
+          title: Limit
+        description: Maximum categories to return
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Offset for pagination
+          default: 0
+          title: Offset
+        description: Offset for pagination
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryResponse'
+                title: Response List Categories Categories Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /categories/{id}:
+    get:
+      tags:
+      - Categories
+      summary: Get category by ID
+      description: Retrieve a single category by its unique identifier.
+      operationId: get_category_categories__id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          description: Category identifier
+          title: Id
+          examples:
+          - 1
+        description: Category identifier
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /products:
+    post:
+      tags:
+      - Products
+      summary: Create product
+      description: Create a new product associated with an existing category.
+      operationId: create_product_products_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Duplicate SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+    get:
+      tags:
+      - Products
+      summary: List products
+      description: Retrieve a paginated list of products, optionally filtered by category.
+      operationId: list_products_products_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          description: Page limit (1 to 100)
+          default: 20
+          title: Limit
+        description: Page limit (1 to 100)
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          description: Offset for pagination
+          default: 0
+          title: Offset
+        description: Offset for pagination
+      - name: category_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+            examples:
+            - 1
+          - type: 'null'
+          description: Filter by category ID
+          title: Category Id
+        description: Filter by category ID
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductResponse'
+                title: Response List Products Products Get
+        '422':
+          description: Validation error on limit/offset parameters
+  /products/{id}:
+    get:
+      tags:
+      - Products
+      summary: Get product by ID
+      description: Retrieve a single product by its unique integer identifier.
+      operationId: get_product_products__id__get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          description: Product integer identifier
+          title: Id
+          examples:
+          - 1
+        description: Product integer identifier
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid product ID format
+    put:
+      tags:
+      - Products
+      summary: Update product
+      description: >-
+        Update mutable fields of a product (name, price, quantity, etc). Only the fields sent in
+        the body are changed: omitted fields and fields sent as null keep their current value.
+      operationId: update_product_products__id__put
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          description: Product identifier
+          title: Id
+          examples:
+          - 1
+        description: Product identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          description: Product or category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error on updated fields
+    delete:
+      tags:
+      - Products
+      summary: Delete product
+      description: Delete a product by its unique identifier.
+      operationId: delete_product_products__id__delete
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          description: Product identifier
+          title: Id
+          examples:
+          - 1
+        description: Product identifier
+      responses:
+        '204':
+          description: Product successfully deleted, no content returned
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    CategoryCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+          description: Category name
+        slug:
+          type: string
+          maxLength: 50
+          minLength: 1
+          pattern: ^[a-z0-9]+(?:-[a-z0-9]+)*$
+          title: Slug
+          description: URL-friendly unique slug (lowercase alphanumeric and hyphens)
+          examples:
+          - home-appliances
+          - garden-tools
+        description:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Description
+          description: Category description
+      type: object
+      required:
+      - name
+      - slug
+      title: CategoryCreate
+    CategoryResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+          description: Unique category identifier
+          examples:
+          - 1
+        name:
+          type: string
+          title: Name
+          description: Category name
+          examples:
+          - Electronics
+        slug:
+          type: string
+          title: Slug
+          description: Category slug
+          examples:
+          - electronics
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+          description: Category description
+      type: object
+      required:
+      - id
+      - name
+      - slug
+      title: CategoryResponse
+    ErrorResponse:
+      properties:
+        detail:
+          type: string
+          title: Detail
+          description: Error message description
+      type: object
+      required:
+      - detail
+      title: ErrorResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+          examples:
+          - ok
+        service:
+          type: string
+          title: Service
+          examples:
+          - simple-store
+        version:
+          type: string
+          title: Version
+          examples:
+          - 1.0.0
+      type: object
+      required:
+      - status
+      - service
+      - version
+      title: HealthResponse
+    ProductCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+          description: Product name
+        sku:
+          type: string
+          maxLength: 50
+          minLength: 3
+          pattern: ^[A-Z0-9_-]+$
+          title: Sku
+          description: Stock Keeping Unit (uppercase alphanumeric, hyphens, underscores)
+          examples:
+          - PROD-001
+          - TECH_100
+        price:
+          type: number
+          minimum: 0.0
+          title: Price
+          description: Product price in USD, must be >= 0
+          examples:
+          - 19.99
+        category_id:
+          type: integer
+          minimum: 1.0
+          title: Category Id
+          description: Associated category ID
+          examples:
+          - 1
+        quantity:
+          type: integer
+          maximum: 100000.0
+          minimum: 0.0
+          title: Quantity
+          description: Stock quantity, must be between 0 and 100,000
+          default: 0
+          examples:
+          - 10
+        description:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Description
+          description: Product description
+      type: object
+      required:
+      - name
+      - sku
+      - price
+      - category_id
+      title: ProductCreate
+    ProductResponse:
+      properties:
+        id:
+          type: integer
+          title: Id
+          description: Unique product identifier
+          examples:
+          - 1
+        name:
+          type: string
+          title: Name
+          description: Product name
+          examples:
+          - Wireless Mouse
+        sku:
+          type: string
+          title: Sku
+          description: Stock Keeping Unit
+          examples:
+          - MOUSE-001
+        price:
+          type: number
+          title: Price
+          description: Product price
+          examples:
+          - 29.99
+        category_id:
+          type: integer
+          title: Category Id
+          description: Category ID
+          examples:
+          - 1
+        quantity:
+          type: integer
+          title: Quantity
+          description: Stock quantity
+          examples:
+          - 100
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+          description: Product description
+        created_at:
+          type: string
+          title: Created At
+          description: ISO 8601 creation timestamp
+      type: object
+      required:
+      - id
+      - name
+      - sku
+      - price
+      - category_id
+      - quantity
+      - created_at
+      title: ProductResponse
+    ProductUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Name
+          description: Updated product name
+        price:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Price
+          description: Updated price, must be >= 0
+        category_id:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Category Id
+          description: Updated category ID
+        quantity:
+          anyOf:
+          - type: integer
+            maximum: 100000.0
+            minimum: 0.0
+          - type: 'null'
+          title: Quantity
+          description: Updated stock quantity (0 to 100,000)
+        description:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Description
+          description: Updated description
+      type: object
+      title: ProductUpdate
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

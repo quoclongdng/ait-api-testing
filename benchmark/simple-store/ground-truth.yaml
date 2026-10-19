@@ -1,0 +1,164 @@
+version: "1.0"
+benchmark: "simple-store"
+name: "Simple Store Benchmark API"
+base_url: "http://simple-store:8000"
+total_bugs: 10
+# simple-store has no secured endpoint, so it declares no `auth` fixture (ADR-0006).
+# ADR-0006 / S11-01: business rules a tester can read in openapi.yaml or README (expected clean
+# behaviour, never bug answers). One or two rules per operation, covering operations with and
+# without seeded bugs alike; they name only paths, status codes and error codes found in the
+# spec/README (checked by benchmark/tools/ground_truth_fixture.py). Only LLM/HYBRID read them.
+business_rules:
+  - code: "BR-SS-001"
+    method: "POST"
+    path: "/categories"
+    description: "Category slugs are unique: creating a category whose slug already exists is rejected with 409."
+  - code: "BR-SS-002"
+    method: "GET"
+    path: "/categories"
+    description: "Categories are paginated with limit (1 to 100, default 50) and offset (0 or more); the response is a JSON array of categories."
+  - code: "BR-SS-003"
+    method: "GET"
+    path: "/categories/{id}"
+    description: "Reading a category that does not exist returns 404 with a JSON error body."
+  - code: "BR-SS-004"
+    method: "POST"
+    path: "/products"
+    description: "A product must reference an existing category (unknown category_id -> 404) and its SKU must be unique (duplicate SKU -> 409)."
+  - code: "BR-SS-005"
+    method: "GET"
+    path: "/products"
+    description: "The optional category_id filter returns only the products of that category."
+  - code: "BR-SS-006"
+    method: "GET"
+    path: "/products/{id}"
+    description: "Reading a product that does not exist returns 404 with a JSON error body."
+  - code: "BR-SS-007"
+    method: "PUT"
+    path: "/products/{id}"
+    description: "Only the fields sent in the body are changed (omitted or null fields keep their value); moving a product to a category that does not exist returns 404."
+  - code: "BR-SS-008"
+    method: "DELETE"
+    path: "/products/{id}"
+    description: "A deleted product can no longer be read: a later GET /products/{id} for it returns 404; deleting an unknown product returns 404."
+bugs:
+  - code: "BUG-001"
+    method: "POST"
+    path: "/products"
+    category: "VALIDATION_MISSING"
+    toggle_env: "BUG_001"
+    description: "Accepts creation of product without name field (omits required validation)"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when 'name' field is missing"
+    actual_bug_behavior: "HTTP 201 Created with empty or default product name"
+    oracle_assertion:
+      type: "status"
+      equals: 422
+
+  - code: "BUG-002"
+    method: "POST"
+    path: "/products"
+    category: "BOUNDARY_ERROR"
+    toggle_env: "BUG_002"
+    description: "Allows negative price product creation (bypasses price >= 0 boundary)"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when price < 0"
+    actual_bug_behavior: "HTTP 201 Created with negative price"
+    oracle_assertion:
+      type: "status"
+      equals: 422
+
+  - code: "BUG-003"
+    method: "POST"
+    path: "/products"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_003"
+    description: "Returns HTTP 200 instead of HTTP 201 Created on successful product creation"
+    expected_clean_behavior: "HTTP 201 Created on valid product creation"
+    actual_bug_behavior: "HTTP 200 OK returned instead of 201"
+    oracle_assertion:
+      type: "status"
+      equals: 201
+
+  - code: "BUG-004"
+    method: "GET"
+    path: "/products/{id}"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_004"
+    description: "Returns HTTP 200 with empty body {} instead of 404 Not Found when product ID does not exist"
+    expected_clean_behavior: "HTTP 404 Not Found with error detail message"
+    actual_bug_behavior: "HTTP 200 OK with empty dictionary {}"
+    oracle_assertion:
+      type: "status"
+      equals: 404
+
+  - code: "BUG-005"
+    method: "GET"
+    path: "/products/{id}"
+    category: "SCHEMA_MISMATCH"
+    toggle_env: "BUG_005"
+    description: "Omits required 'sku' field in product response body, violating OpenAPI schema contract"
+    expected_clean_behavior: "Response JSON contains required 'sku' string property"
+    actual_bug_behavior: "Response JSON lacks 'sku' property"
+    oracle_assertion:
+      type: "json_path"
+      path: "$.sku"
+      op: "exists"
+
+  - code: "BUG-006"
+    method: "PUT"
+    path: "/products/{id}"
+    category: "BOUNDARY_ERROR"
+    toggle_env: "BUG_006"
+    description: "Allows updating quantity to values exceeding maximum limit of 100,000"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when quantity > 100000"
+    actual_bug_behavior: "HTTP 200 OK with updated quantity > 100000"
+    oracle_assertion:
+      type: "status"
+      equals: 422
+
+  - code: "BUG-007"
+    method: "GET"
+    path: "/products"
+    category: "VALIDATION_MISSING"
+    toggle_env: "BUG_007"
+    description: "Fails to validate limit parameter (limit <= 0 or limit > 100), triggering unhandled internal server error 500"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when limit is outside 1-100"
+    actual_bug_behavior: "HTTP 500 Internal Server Error (server crash)"
+    oracle_assertion:
+      type: "status"
+      equals: 422
+
+  - code: "BUG-008"
+    method: "POST"
+    path: "/categories"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_008"
+    description: "Allows creating duplicate category with existing slug, violating uniqueness constraint"
+    expected_clean_behavior: "HTTP 409 Conflict when category slug already exists"
+    actual_bug_behavior: "HTTP 201 Created allowing duplicate category slug"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-009"
+    method: "DELETE"
+    path: "/products/{id}"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_009"
+    description: "Returns HTTP 200 with JSON message body instead of HTTP 204 No Content on successful deletion"
+    expected_clean_behavior: "HTTP 204 No Content with empty response body"
+    actual_bug_behavior: "HTTP 200 OK with JSON body {'message': 'Product successfully deleted'}"
+    oracle_assertion:
+      type: "status"
+      equals: 204
+
+  - code: "BUG-010"
+    method: "GET"
+    path: "/products/{id}"
+    category: "VALIDATION_MISSING"
+    toggle_env: "BUG_010"
+    description: "Non-numeric string ID in path causes unhandled crash (HTTP 500) instead of HTTP 422"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when path ID is non-numeric string"
+    actual_bug_behavior: "HTTP 500 Internal Server Error due to unhandled type conversion crash"
+    oracle_assertion:
+      type: "status"
+      equals: 422

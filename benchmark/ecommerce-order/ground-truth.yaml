@@ -1,0 +1,232 @@
+version: "1.0"
+benchmark: "ecommerce-order"
+name: "E-Commerce Order Benchmark API"
+base_url: "http://ecommerce-order:8000"
+total_bugs: 12
+# ADR-0006: synthetic sandbox credentials (the public fixture tokens of app/auth.py, not secrets).
+# Experiments snapshot this block; the executor sends `Authorization: Bearer {{auth_token_<role>}}`
+# to secured operations unless a case sets the header itself or is an AUTH case.
+auth:
+  scheme: "bearer"
+  default_role: "customer"
+  roles:
+    customer:
+      token: "customer-alice-token"
+      description: "CUSTOMER alice (user_id 1, owns cart 101)"
+    customer_bob:
+      token: "customer-bob-token"
+      description: "CUSTOMER bob (user_id 2, owns cart 102), a second customer for ownership checks"
+    admin:
+      token: "admin-token"
+      description: "ADMIN (user_id 99), may read every order and the admin order listing"
+  # Roles per operation, from the spec tags and summaries ("Endpoints restricted to the ADMIN
+  # role", "Customer-owned shopping cart operations").
+  operations:
+    - { method: "GET", path: "/admin/orders", role: "admin", forbidden_roles: ["customer"] }
+    - { method: "GET", path: "/cart", forbidden_roles: ["admin"] }
+    - { method: "POST", path: "/cart/items", forbidden_roles: ["admin"] }
+    - { method: "DELETE", path: "/cart/items/{item_id}", forbidden_roles: ["admin"] }
+    - { method: "POST", path: "/checkout", forbidden_roles: ["admin"] }
+    - { method: "POST", path: "/orders", forbidden_roles: ["admin"] }
+    - { method: "POST", path: "/orders/{order_id}/pay", forbidden_roles: ["admin"] }
+    - { method: "POST", path: "/orders/{order_id}/cancel", forbidden_roles: ["admin"] }
+    - { method: "POST", path: "/coupons/apply", forbidden_roles: ["admin"] }
+# ADR-0006 / S11-01: business rules a tester can read in openapi.yaml or README (expected clean
+# behaviour, never bug answers). One or two rules per operation, covering operations with and
+# without seeded bugs alike; they name only paths, status codes and error codes found in the
+# spec/README (checked by benchmark/tools/ground_truth_fixture.py). Only LLM/HYBRID read them.
+business_rules:
+  - code: "BR-EO-001"
+    method: "GET"
+    path: "/products"
+    description: "The product catalog is public (no token needed) and lists every product with its current stock."
+  - code: "BR-EO-002"
+    method: "GET"
+    path: "/products/{product_id}"
+    description: "An unknown product id returns 404 with an error object (detail.code, detail.message)."
+  - code: "BR-EO-003"
+    method: "GET"
+    path: "/cart"
+    description: "Each customer has one cart: the response is the caller's own cart (alice owns cart 101, bob cart 102) and total_amount is the sum of the items' line_total."
+  - code: "BR-EO-004"
+    method: "POST"
+    path: "/cart/items"
+    description: "The added quantity is between 1 and 100 (otherwise 422) and an unknown product_id returns 404."
+  - code: "BR-EO-005"
+    method: "DELETE"
+    path: "/cart/items/{item_id}"
+    description: "Removing an item of the caller's cart returns 204 and the item no longer appears in GET /cart."
+  - code: "BR-EO-006"
+    method: "POST"
+    path: "/checkout"
+    description: "Only the caller's own cart can be checked out (another customer's cart_id -> 403); the new order starts in status PENDING."
+  - code: "BR-EO-007"
+    method: "POST"
+    path: "/orders"
+    description: "Duplicate product lines are combined before stock is validated; a new order starts in status PENDING and does not reserve stock."
+  - code: "BR-EO-008"
+    method: "GET"
+    path: "/orders/{order_id}"
+    description: "An unknown order id returns 404; ADMIN may read any customer's order."
+  - code: "BR-EO-009"
+    method: "POST"
+    path: "/orders/{order_id}/pay"
+    description: "Paying an owned PENDING order moves it to PAID; stock is validated again and deducted when the payment succeeds."
+  - code: "BR-EO-010"
+    method: "POST"
+    path: "/orders/{order_id}/cancel"
+    description: "A cancelled order has status CANCELLED; cancelling a PAID order restores its deducted stock."
+  - code: "BR-EO-011"
+    method: "GET"
+    path: "/admin/orders"
+    description: "The order listing is restricted to the ADMIN role (other roles -> 403) and returns the orders of every customer."
+  - code: "BR-EO-012"
+    method: "POST"
+    path: "/coupons/apply"
+    description: "Coupon SAVE10 gives a 10% discount on an owned cart whose subtotal is at least 100; an unknown code returns 404."
+bugs:
+  - code: "BUG-011"
+    method: "POST"
+    path: "/cart/items"
+    category: "BOUNDARY_ERROR"
+    toggle_env: "BUG_011"
+    description: "Allows adding product to cart with quantity = 0 (bypasses quantity >= 1 boundary)"
+    expected_clean_behavior: "HTTP 422 Unprocessable Entity when quantity < 1"
+    actual_bug_behavior: "HTTP 201 Created with quantity = 0"
+    oracle_assertion:
+      type: "status"
+      equals: 422
+
+  - code: "BUG-012"
+    method: "POST"
+    path: "/cart/items"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_012"
+    description: "Allows adding product quantity exceeding actual available inventory stock"
+    expected_clean_behavior: "HTTP 409 Conflict with INSUFFICIENT_STOCK"
+    actual_bug_behavior: "HTTP 201 Created allowing quantity > stock"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-013"
+    method: "POST"
+    path: "/checkout"
+    category: "SEQUENCE_ERROR"
+    toggle_env: "BUG_013"
+    description: "Allows checking out an empty shopping cart with no items"
+    expected_clean_behavior: "HTTP 409 Conflict with EMPTY_CART"
+    actual_bug_behavior: "HTTP 201 Created creating an empty order with 0 items"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-014"
+    method: "POST"
+    path: "/checkout"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_014"
+    description: "Checkout returns HTTP 200 instead of HTTP 201 and omits required Location header"
+    expected_clean_behavior: "HTTP 201 Created with Location header pointing to created order"
+    actual_bug_behavior: "HTTP 200 OK without Location response header"
+    oracle_assertion:
+      type: "status"
+      equals: 201
+
+  - code: "BUG-015"
+    method: "POST"
+    path: "/orders/{order_id}/pay"
+    category: "SEQUENCE_ERROR"
+    toggle_env: "BUG_015"
+    description: "Allows double payment on the same order that has already been paid"
+    expected_clean_behavior: "HTTP 409 Conflict with ORDER_NOT_PAYABLE"
+    actual_bug_behavior: "HTTP 200 OK allowing repeated payment"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-016"
+    method: "POST"
+    path: "/orders/{order_id}/cancel"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_016"
+    description: "Allows cancelling an order whose status is already SHIPPED"
+    expected_clean_behavior: "HTTP 409 Conflict with ORDER_NOT_CANCELLABLE"
+    actual_bug_behavior: "HTTP 200 OK transitioning shipped order to CANCELLED"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-017"
+    method: "GET"
+    path: "/admin/orders"
+    category: "AUTH_ERROR"
+    toggle_env: "BUG_017"
+    description: "Allows regular CUSTOMER role to access admin-only order listing endpoint"
+    expected_clean_behavior: "HTTP 403 Forbidden with FORBIDDEN"
+    actual_bug_behavior: "HTTP 200 OK returning all orders to customer"
+    oracle_assertion:
+      type: "status"
+      equals: 403
+
+  - code: "BUG-018"
+    method: "GET"
+    path: "/orders/{order_id}"
+    category: "AUTH_ERROR"
+    toggle_env: "BUG_018"
+    description: "Insecure Direct Object Reference (IDOR): Customer A can view Customer B's order"
+    expected_clean_behavior: "HTTP 403 Forbidden with FORBIDDEN"
+    actual_bug_behavior: "HTTP 200 OK returning another customer's order"
+    oracle_assertion:
+      type: "status"
+      equals: 403
+
+  - code: "BUG-019"
+    method: "POST"
+    path: "/orders"
+    category: "SCHEMA_MISMATCH"
+    toggle_env: "BUG_019"
+    description: "Order creation returns total_amount as a string instead of number in response JSON"
+    expected_clean_behavior: "Response JSON total_amount is a float/number"
+    actual_bug_behavior: "Response JSON total_amount is serialized as string"
+    oracle_assertion:
+      type: "json_schema"
+      schema_ref: "#/components/schemas/OrderResponse"
+
+  - code: "BUG-020"
+    method: "POST"
+    path: "/coupons/apply"
+    category: "BUSINESS_RULE_VIOLATION"
+    toggle_env: "BUG_020"
+    description: "Applies discount coupon when cart total does not meet the minimum subtotal requirement of 100"
+    expected_clean_behavior: "HTTP 409 Conflict with COUPON_MINIMUM_NOT_MET"
+    actual_bug_behavior: "HTTP 200 OK successfully applying coupon discount"
+    oracle_assertion:
+      type: "status"
+      equals: 409
+
+  - code: "BUG-021"
+    method: "DELETE"
+    path: "/cart/items/{item_id}"
+    category: "STATUS_CODE_WRONG"
+    toggle_env: "BUG_021"
+    description: "Deleting non-existent cart item returns HTTP 500 instead of HTTP 404 Not Found"
+    expected_clean_behavior: "HTTP 404 Not Found with CART_ITEM_NOT_FOUND"
+    actual_bug_behavior: "HTTP 500 Internal Server Error"
+    oracle_assertion:
+      type: "status"
+      equals: 404
+
+  - code: "BUG-022"
+    method: "GET"
+    path: "/cart"
+    category: "SCHEMA_MISMATCH"
+    toggle_env: "BUG_022"
+    description: "Empty cart response returns items field as null instead of an empty array []"
+    expected_clean_behavior: "Response JSON contains items as an array []"
+    actual_bug_behavior: "Response JSON contains items as null"
+    oracle_assertion:
+      type: "json_path"
+      path: "$.items"
+      op: "type"
+      value: "array"

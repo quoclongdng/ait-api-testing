@@ -1,0 +1,386 @@
+openapi: 3.1.0
+info:
+  title: Appointment Booking Benchmark API
+  version: 1.0.0
+  description: >-
+    Benchmark #3 clean sandbox for AI Testing Platform. It models hospital departments,
+    doctors, complex time-based appointment scheduling, quota limits, 24h reschedule window,
+    and role-based authorization (PATIENT, DOCTOR, ADMIN).
+servers:
+  - url: http://localhost:8004
+    description: Sandbox host port
+  - url: http://benchmark-booking:8000
+    description: Internal Docker network
+security: []
+tags:
+  - name: Health
+    description: Service availability.
+  - name: Departments
+    description: Hospital departments catalog.
+  - name: Doctors
+    description: Doctor profiles and availability time slots.
+  - name: Appointments
+    description: Multi-step booking, rescheduling, and cancellation workflow.
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Check service health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+
+  /departments:
+    get:
+      tags: [Departments]
+      operationId: listDepartments
+      summary: List all departments
+      responses:
+        '200':
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DepartmentResponse' }
+
+  /departments/{department_id}:
+    get:
+      tags: [Departments]
+      operationId: getDepartment
+      summary: Get department details by ID
+      parameters:
+        - name: department_id
+          in: path
+          required: true
+          description: Seeded departments are 1 (Cardiology), 2 (Dermatology) and 3 (Pediatrics).
+          schema: { type: integer, minimum: 1, examples: [1] }
+      responses:
+        '200':
+          description: Department details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DepartmentResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /doctors:
+    get:
+      tags: [Doctors]
+      operationId: listDoctors
+      summary: List doctors, optionally filtered by department
+      parameters:
+        - name: department_id
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, examples: [1] }
+      responses:
+        '200':
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DoctorResponse' }
+
+  /doctors/{doctor_id}:
+    get:
+      tags: [Doctors]
+      operationId: getDoctor
+      summary: Get doctor details by ID
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          description: Seeded doctors are 101 (Cardiology) and 102 (Dermatology).
+          schema: { type: integer, minimum: 1, examples: [101] }
+      responses:
+        '200':
+          description: Doctor details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DoctorResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /doctors/{doctor_id}/slots:
+    get:
+      tags: [Doctors]
+      operationId: getDoctorSlots
+      summary: Get doctor time slots for a specific date
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          description: Seeded doctors are 101 (Cardiology) and 102 (Dermatology).
+          schema: { type: integer, minimum: 1, examples: [101] }
+        - name: date
+          in: query
+          required: true
+          description: >-
+            Day in YYYY-MM-DD. It must be a real calendar date: a value that matches the pattern
+            but is not a date (e.g. 2026-02-30) is rejected with 422.
+          schema: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', examples: ['2026-10-15'] }
+      responses:
+        '200':
+          description: Available and booked slots
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimeSlotListResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /appointments:
+    get:
+      tags: [Appointments]
+      operationId: listAppointments
+      summary: List appointments for the authenticated user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Appointments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AppointmentResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Appointments]
+      operationId: createAppointment
+      summary: Book a new medical appointment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AppointmentCreate' }
+      responses:
+        '201':
+          description: Appointment successfully created
+          headers:
+            Location:
+              description: Relative URL of the created appointment
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AppointmentResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /appointments/{appointment_id}:
+    patch:
+      tags: [Appointments]
+      operationId: rescheduleAppointment
+      summary: Reschedule an appointment to a new date/slot
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          description: >-
+            Seeded appointments are 501 (patient alice, 2026-10-15 09:00) and 502 (patient bob,
+            2026-10-10 09:00); appointments created through the API get new ids.
+          schema: { type: integer, minimum: 1, examples: [501] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AppointmentReschedule' }
+      responses:
+        '200':
+          description: Rescheduled appointment
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AppointmentResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Appointments]
+      operationId: cancelAppointment
+      summary: Cancel an appointment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          description: >-
+            Seeded appointments are 501 (patient alice, 2026-10-15 09:00) and 502 (patient bob,
+            2026-10-10 09:00); appointments created through the API get new ids.
+          schema: { type: integer, minimum: 1, examples: [501] }
+      responses:
+        '204':
+          description: Appointment successfully cancelled
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Synthetic bearer token authentication
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Insufficient permissions or ownership violation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Business rule violation or conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ValidationError:
+      description: >-
+        Request schema or parameter validation failure (array `detail`), or a business
+        validation error such as INVALID_DATE / INVALID_SLOT (object `detail` with code/message).
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - { $ref: '#/components/schemas/ValidationErrorResponse' }
+              - { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, version]
+      properties:
+        status: { type: string }
+        service: { type: string }
+        version: { type: string }
+
+    DepartmentResponse:
+      type: object
+      additionalProperties: false
+      required: [id, name, code, description]
+      properties:
+        id: { type: integer, minimum: 1 }
+        name: { type: string }
+        code: { type: string }
+        description: { type: string }
+
+    DoctorResponse:
+      type: object
+      additionalProperties: false
+      required: [id, name, department_id, specialization, max_daily_quota]
+      properties:
+        id: { type: integer, minimum: 1 }
+        name: { type: string }
+        department_id: { type: integer, minimum: 1 }
+        specialization: { type: string }
+        max_daily_quota: { type: integer, minimum: 1 }
+
+    TimeSlotResponse:
+      type: object
+      additionalProperties: false
+      required: [slot_id, doctor_id, start_time, end_time, is_available]
+      properties:
+        slot_id: { type: string }
+        doctor_id: { type: integer, minimum: 1 }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        is_available: { type: boolean }
+
+    TimeSlotListResponse:
+      type: array
+      items: { $ref: '#/components/schemas/TimeSlotResponse' }
+
+    AppointmentCreate:
+      type: object
+      additionalProperties: false
+      required: [doctor_id, appointment_date, slot_id, patient_phone]
+      properties:
+        doctor_id: { type: integer, minimum: 1, examples: [102] }
+        appointment_date: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', examples: ['2026-10-16'] }
+        slot_id:
+          type: string
+          minLength: 1
+          maxLength: 32
+          enum: [SLOT-0800, SLOT-0830, SLOT-0900, SLOT-0930, SLOT-1000, SLOT-1030, SLOT-1100, SLOT-1130, SLOT-1300, SLOT-1330, SLOT-1400, SLOT-1430, SLOT-1500, SLOT-1530, SLOT-1600, SLOT-1630, SLOT-1700, SLOT-1730, SLOT-1800, SLOT-1830, SLOT-1900, SLOT-1930]
+        patient_phone: { type: string, pattern: '^\+?[0-9]{9,15}$', examples: ['+84901234567'] }
+        notes: { type: [string, 'null'], maxLength: 500 }
+
+    AppointmentReschedule:
+      type: object
+      additionalProperties: false
+      required: [new_date, new_slot_id]
+      properties:
+        new_date: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', examples: ['2026-10-19'] }
+        new_slot_id:
+          type: string
+          minLength: 1
+          maxLength: 32
+          enum: [SLOT-0800, SLOT-0830, SLOT-0900, SLOT-0930, SLOT-1000, SLOT-1030, SLOT-1100, SLOT-1130, SLOT-1300, SLOT-1330, SLOT-1400, SLOT-1430, SLOT-1500, SLOT-1530, SLOT-1600, SLOT-1630, SLOT-1700, SLOT-1730, SLOT-1800, SLOT-1830, SLOT-1900, SLOT-1930]
+        notes: { type: [string, 'null'], maxLength: 500 }
+
+    AppointmentResponse:
+      type: object
+      additionalProperties: false
+      required: [id, patient_id, doctor_id, department_id, appointment_date, slot_id, start_time, end_time, patient_name, patient_phone, status]
+      properties:
+        id: { type: integer, minimum: 1 }
+        patient_id: { type: integer, minimum: 1 }
+        doctor_id: { type: integer, minimum: 1 }
+        department_id: { type: integer, minimum: 1 }
+        appointment_date: { type: string }
+        slot_id: { type: string }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        patient_name: { type: string }
+        patient_phone: { type: string }
+        notes: { type: [string, 'null'] }
+        status:
+          type: string
+          enum: [BOOKED, COMPLETED, CANCELLED, RESCHEDULED]
+
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [detail]
+      properties:
+        detail: { $ref: '#/components/schemas/ErrorDetail' }
+
+    ValidationErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
