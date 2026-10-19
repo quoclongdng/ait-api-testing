@@ -1,0 +1,16 @@
+diff --git a/web/app/Actions/Experiments/RunExperimentAction.php b/web/app/Actions/Experiments/RunExperimentAction.php
+index ced0b34..41ba88e 100644
+--- a/web/app/Actions/Experiments/RunExperimentAction.php
++++ b/web/app/Actions/Experiments/RunExperimentAction.php
+@@ -658,7 +658,10 @@ private function generate(Experiment $experiment, ApiSpec $spec, TestSuite $suit
+         }
+ 
+         $aiParams = $params;
+-        if (array_key_exists('business_rules', $config) && is_array($config['business_rules'])) {
++        // ABLATION (paper): business rules are NOT sent to the LLM. An explicit empty list is
++        // required: without the key, ExecuteAiGenerationAction falls back to the project's rules.
++        $aiParams['business_rules'] = [];
++        if (false && array_key_exists('business_rules', $config) && is_array($config['business_rules'])) {
+             // ADR-0006: the snapshot taken at creation, not the shared project's live rules.
+             $aiParams['business_rules'] = array_values($config['business_rules']);
+         }

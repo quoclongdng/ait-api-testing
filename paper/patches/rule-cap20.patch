@@ -1,0 +1,13 @@
+diff --git a/web/app/Actions/Experiments/RunExperimentAction.php b/web/app/Actions/Experiments/RunExperimentAction.php
+index ced0b34..e6be3fe 100644
+--- a/web/app/Actions/Experiments/RunExperimentAction.php
++++ b/web/app/Actions/Experiments/RunExperimentAction.php
+@@ -633,7 +633,7 @@ private function generate(Experiment $experiment, ApiSpec $spec, TestSuite $suit
+             // defaults (LLM: all techniques, HYBRID: BUSINESS_RULE/SEQUENCE/AUTH) instead of
+             // AiGenerateRequest's HAPPY_PATH fallback, so RULE/LLM/HYBRID compare fairly.
+             'techniques' => [],
+-            'max_cases_per_endpoint' => 10,
++            'max_cases_per_endpoint' => 20, // ABLATION (paper): RULE cap 20
+         ];
+         // ADR-0006: generators get the role names of the snapshotted auth fixture (never tokens);
+         // RULE adds AUTH cases from it, LLM/HYBRID reference {{auth_token_<role>}} placeholders.
