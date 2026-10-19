@@ -1,0 +1,29 @@
+{
+ "note": "Excluded from the analysis: every LLM GENERATE call of this first HYBRID-noBR-30b attempt timed out; the configuration was re-run (manifest_ablation.json).",
+ "runs": [
+  {
+   "tag": "HYBRID-noBR-30b",
+   "benchmark": "simple-store",
+   "model": "qwen3-coder:30b",
+   "dir": "paper/runs/20261018T124112Z",
+   "exit_code": 0,
+   "excluded_reason": "Ollama 11436: moi loi goi GENERATE qua han 300 s (3/5 job FAILED, 2/5 PARTIAL), 18/10 19:41-01:21; chay lai"
+  },
+  {
+   "tag": "HYBRID-noBR-30b",
+   "benchmark": "ecommerce-order",
+   "model": "qwen3-coder:30b",
+   "dir": "paper/runs/20261018T143509Z",
+   "exit_code": 0,
+   "excluded_reason": "Ollama 11436: moi loi goi GENERATE qua han 300 s (3/5 job FAILED, 2/5 PARTIAL), 18/10 19:41-01:21; chay lai"
+  },
+  {
+   "tag": "HYBRID-noBR-30b",
+   "benchmark": "appointment-booking",
+   "model": "qwen3-coder:30b",
+   "dir": "paper/runs/20261018T162850Z",
+   "exit_code": 0,
+   "excluded_reason": "Ollama 11436: moi loi goi GENERATE qua han 300 s (3/5 job FAILED, 2/5 PARTIAL), 18/10 19:41-01:21; chay lai"
+  }
+ ]
+}

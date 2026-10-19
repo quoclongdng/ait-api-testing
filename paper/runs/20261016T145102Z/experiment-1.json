@@ -1,0 +1,1126 @@
+{
+    "format_version": "1.0",
+    "exported_at": "2026-10-16T16:06:32.025540Z",
+    "experiments": [
+        {
+            "id": 1,
+            "name": "make experiment 20261016T145102Z · appointment-booking",
+            "strategy": "RULE",
+            "status": "COMPLETED",
+            "benchmark": {
+                "id": 1,
+                "slug": "appointment-booking",
+                "name": "Appointment Booking Benchmark API",
+                "version": "v1.0",
+                "bugs_total": 10
+            },
+            "config": {
+                "model": "qwen3-coder:30b",
+                "temperature": 0.2,
+                "seed": 42,
+                "seeds": [
+                    42,
+                    1024,
+                    2026,
+                    2027,
+                    2028
+                ],
+                "repetitions": 5,
+                "auth": {
+                    "roles": {
+                        "admin": {
+                            "token": "admin-token",
+                            "description": "ADMIN (user_id 999), may see and manage every appointment"
+                        },
+                        "doctor": {
+                            "token": "doctor-carol-token",
+                            "description": "DOCTOR carol (doctor_id 101), may see and manage every appointment"
+                        },
+                        "patient": {
+                            "token": "patient-alice-token",
+                            "description": "PATIENT alice (patient_id 1)"
+                        },
+                        "patient_bob": {
+                            "token": "patient-bob-token",
+                            "description": "PATIENT bob (patient_id 2), a second patient for ownership checks"
+                        }
+                    },
+                    "scheme": "bearer",
+                    "operations": [],
+                    "default_role": "patient"
+                },
+                "business_rules": [
+                    {
+                        "code": "BR-AB-001",
+                        "path": "/departments",
+                        "method": "GET",
+                        "description": "The department catalog is public (no token needed) and lists every department with id, name, code and description."
+                    },
+                    {
+                        "code": "BR-AB-002",
+                        "path": "/departments/{department_id}",
+                        "method": "GET",
+                        "description": "An unknown department returns 404 with a JSON error body."
+                    },
+                    {
+                        "code": "BR-AB-003",
+                        "path": "/doctors",
+                        "method": "GET",
+                        "description": "The optional department_id filter returns only the doctors of that department."
+                    },
+                    {
+                        "code": "BR-AB-004",
+                        "path": "/doctors/{doctor_id}",
+                        "method": "GET",
+                        "description": "An unknown doctor returns 404; every doctor has a max_daily_quota (the clinic limit is 20 appointments per doctor per day)."
+                    },
+                    {
+                        "code": "BR-AB-005",
+                        "path": "/doctors/{doctor_id}/slots",
+                        "method": "GET",
+                        "description": "The date query must be a real calendar date in YYYY-MM-DD (otherwise 422); a slot that is already booked has is_available false."
+                    },
+                    {
+                        "code": "BR-AB-006",
+                        "path": "/appointments",
+                        "method": "GET",
+                        "description": "A patient sees only their own appointments."
+                    },
+                    {
+                        "code": "BR-AB-007",
+                        "path": "/appointments",
+                        "method": "POST",
+                        "description": "The clinic is closed on Sundays and on the fixed holidays 2026-12-25 and 2026-01-01; booking such a day is rejected with 409."
+                    },
+                    {
+                        "code": "BR-AB-008",
+                        "path": "/appointments",
+                        "method": "POST",
+                        "description": "A doctor cannot have two appointments in the same slot of the same day and accepts at most 20 appointments per day; both conflicts return 409."
+                    },
+                    {
+                        "code": "BR-AB-009",
+                        "path": "/appointments/{appointment_id}",
+                        "method": "PATCH",
+                        "description": "An appointment can be rescheduled only at least 24 hours before it starts (otherwise 409); the sandbox clock is fixed at 2026-10-10T08:00:00Z."
+                    },
+                    {
+                        "code": "BR-AB-010",
+                        "path": "/appointments/{appointment_id}",
+                        "method": "DELETE",
+                        "description": "Cancelling returns 204 and removes the appointment; a patient may cancel only their own appointments (another patient's -> 403) while DOCTOR and ADMIN may cancel any."
+                    }
+                ],
+                "reset_per_case": true
+            },
+            "started_at": "2026-10-16T14:52:38.000000Z",
+            "finished_at": "2026-10-16T16:06:19.000000Z",
+            "metrics": {
+                "stddev": {
+                    "redundancy": 0,
+                    "prompt_tokens": 0,
+                    "validity_rate": 0,
+                    "mutation_score": 0,
+                    "executable_rate": 0,
+                    "completion_tokens": 0,
+                    "endpoint_coverage": 0,
+                    "execution_time_ms": 170.3775,
+                    "bug_detection_rate": 0,
+                    "generation_time_ms": 573.9942,
+                    "false_positive_rate": 0,
+                    "status_code_coverage": 0
+                },
+                "bugs_total": 10,
+                "redundancy": 0,
+                "repetitions": [
+                    {
+                        "seed": 42,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 1,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 2088,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 1607,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    },
+                    {
+                        "seed": 1024,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 2,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1679,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 329,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    },
+                    {
+                        "seed": 2026,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 3,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1818,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 308,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    },
+                    {
+                        "seed": 2027,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 4,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1665,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 320,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    },
+                    {
+                        "seed": 2028,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 5,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1785,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 338,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    }
+                ],
+                "prompt_tokens": 0,
+                "validity_rate": 1,
+                "mutation_score": 0.2,
+                "executable_rate": 1,
+                "completion_tokens": 0,
+                "endpoint_coverage": 1,
+                "execution_time_ms": 1807,
+                "bug_detection_rate": 0.2,
+                "bugs_detected_mean": 2,
+                "generation_time_ms": 580,
+                "false_positive_rate": 0,
+                "status_code_coverage": 0.75
+            },
+            "repetitions": [
+                {
+                    "repetition": 1,
+                    "seed": 42,
+                    "generation_job_id": 1,
+                    "generation_job_ids": [
+                        1
+                    ],
+                    "test_suite_id": 1,
+                    "clean_test_run_id": 1,
+                    "bug_runs": {
+                        "BUG-023": 4,
+                        "BUG-024": 7,
+                        "BUG-025": 10,
+                        "BUG-026": 13,
+                        "BUG-027": 16,
+                        "BUG-028": 19,
+                        "BUG-029": 22,
+                        "BUG-030": 25,
+                        "BUG-031": 28,
+                        "BUG-032": 31
+                    },
+                    "metrics": {
+                        "seed": 42,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 1,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 2088,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 1607,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    }
+                },
+                {
+                    "repetition": 2,
+                    "seed": 1024,
+                    "generation_job_id": 5,
+                    "generation_job_ids": [
+                        5
+                    ],
+                    "test_suite_id": 4,
+                    "clean_test_run_id": 34,
+                    "bug_runs": {
+                        "BUG-023": 37,
+                        "BUG-024": 40,
+                        "BUG-025": 43,
+                        "BUG-026": 46,
+                        "BUG-027": 49,
+                        "BUG-028": 52,
+                        "BUG-029": 55,
+                        "BUG-030": 58,
+                        "BUG-031": 61,
+                        "BUG-032": 64
+                    },
+                    "metrics": {
+                        "seed": 1024,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 2,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1679,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 329,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    }
+                },
+                {
+                    "repetition": 3,
+                    "seed": 2026,
+                    "generation_job_id": 9,
+                    "generation_job_ids": [
+                        9
+                    ],
+                    "test_suite_id": 7,
+                    "clean_test_run_id": 67,
+                    "bug_runs": {
+                        "BUG-023": 70,
+                        "BUG-024": 73,
+                        "BUG-025": 76,
+                        "BUG-026": 79,
+                        "BUG-027": 82,
+                        "BUG-028": 85,
+                        "BUG-029": 88,
+                        "BUG-030": 91,
+                        "BUG-031": 94,
+                        "BUG-032": 97
+                    },
+                    "metrics": {
+                        "seed": 2026,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 3,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1818,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 308,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    }
+                },
+                {
+                    "repetition": 4,
+                    "seed": 2027,
+                    "generation_job_id": 13,
+                    "generation_job_ids": [
+                        13
+                    ],
+                    "test_suite_id": 10,
+                    "clean_test_run_id": 100,
+                    "bug_runs": {
+                        "BUG-023": 103,
+                        "BUG-024": 106,
+                        "BUG-025": 109,
+                        "BUG-026": 112,
+                        "BUG-027": 115,
+                        "BUG-028": 118,
+                        "BUG-029": 121,
+                        "BUG-030": 124,
+                        "BUG-031": 127,
+                        "BUG-032": 130
+                    },
+                    "metrics": {
+                        "seed": 2027,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 4,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1665,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 320,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    }
+                },
+                {
+                    "repetition": 5,
+                    "seed": 2028,
+                    "generation_job_id": 17,
+                    "generation_job_ids": [
+                        17
+                    ],
+                    "test_suite_id": 13,
+                    "clean_test_run_id": 133,
+                    "bug_runs": {
+                        "BUG-023": 136,
+                        "BUG-024": 139,
+                        "BUG-025": 142,
+                        "BUG-026": 145,
+                        "BUG-027": 148,
+                        "BUG-028": 151,
+                        "BUG-029": 154,
+                        "BUG-030": 157,
+                        "BUG-031": 160,
+                        "BUG-032": 163
+                    },
+                    "metrics": {
+                        "seed": 2028,
+                        "valid": 42,
+                        "duplicate": 0,
+                        "generated": 42,
+                        "bugs_total": 10,
+                        "clean_fail": 0,
+                        "clean_pass": 42,
+                        "redundancy": 0,
+                        "repetition": 5,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 0,
+                        "validity_rate": 1,
+                        "mutation_score": 0.2,
+                        "executable_rate": 1,
+                        "completion_tokens": 0,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1785,
+                        "bug_detection_rate": 0.2,
+                        "generation_time_ms": 338,
+                        "false_positive_rate": 0,
+                        "status_code_coverage": 0.75
+                    }
+                }
+            ],
+            "bug_detections": [
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 1,
+                    "bug_code": "BUG-023",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 4,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 2,
+                    "bug_code": "BUG-024",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 7,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 3,
+                    "bug_code": "BUG-025",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 10,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 4,
+                    "bug_code": "BUG-026",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 13,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 5,
+                    "bug_code": "BUG-027",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "PATCH",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 16,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 6,
+                    "bug_code": "BUG-028",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 19,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 7,
+                    "bug_code": "BUG-029",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/doctors/{doctor_id}/slots",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 22,
+                    "detecting_test_case_ids": [
+                        11
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 8,
+                    "bug_code": "BUG-030",
+                    "category": "AUTH_ERROR",
+                    "method": "DELETE",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 25,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 9,
+                    "bug_code": "BUG-031",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/departments/{department_id}",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 28,
+                    "detecting_test_case_ids": [
+                        5
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 10,
+                    "bug_code": "BUG-032",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 31,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 1,
+                    "bug_code": "BUG-023",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 37,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 2,
+                    "bug_code": "BUG-024",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 40,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 3,
+                    "bug_code": "BUG-025",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 43,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 4,
+                    "bug_code": "BUG-026",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 46,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 5,
+                    "bug_code": "BUG-027",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "PATCH",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 49,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 6,
+                    "bug_code": "BUG-028",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 52,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 7,
+                    "bug_code": "BUG-029",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/doctors/{doctor_id}/slots",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 55,
+                    "detecting_test_case_ids": [
+                        151
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 8,
+                    "bug_code": "BUG-030",
+                    "category": "AUTH_ERROR",
+                    "method": "DELETE",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 58,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 9,
+                    "bug_code": "BUG-031",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/departments/{department_id}",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 61,
+                    "detecting_test_case_ids": [
+                        145
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 10,
+                    "bug_code": "BUG-032",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 64,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 1,
+                    "bug_code": "BUG-023",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 70,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 2,
+                    "bug_code": "BUG-024",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 73,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 3,
+                    "bug_code": "BUG-025",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 76,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 4,
+                    "bug_code": "BUG-026",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 79,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 5,
+                    "bug_code": "BUG-027",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "PATCH",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 82,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 6,
+                    "bug_code": "BUG-028",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 85,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 7,
+                    "bug_code": "BUG-029",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/doctors/{doctor_id}/slots",
+                    "detected": true,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 88,
+                    "detecting_test_case_ids": [
+                        295
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 8,
+                    "bug_code": "BUG-030",
+                    "category": "AUTH_ERROR",
+                    "method": "DELETE",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 91,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 9,
+                    "bug_code": "BUG-031",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/departments/{department_id}",
+                    "detected": true,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 94,
+                    "detecting_test_case_ids": [
+                        289
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 10,
+                    "bug_code": "BUG-032",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 67,
+                    "bug_test_run_id": 97,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 1,
+                    "bug_code": "BUG-023",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 103,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 2,
+                    "bug_code": "BUG-024",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 106,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 3,
+                    "bug_code": "BUG-025",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 109,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 4,
+                    "bug_code": "BUG-026",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 112,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 5,
+                    "bug_code": "BUG-027",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "PATCH",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 115,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 6,
+                    "bug_code": "BUG-028",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 118,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 7,
+                    "bug_code": "BUG-029",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/doctors/{doctor_id}/slots",
+                    "detected": true,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 121,
+                    "detecting_test_case_ids": [
+                        435
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 8,
+                    "bug_code": "BUG-030",
+                    "category": "AUTH_ERROR",
+                    "method": "DELETE",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 124,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 9,
+                    "bug_code": "BUG-031",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/departments/{department_id}",
+                    "detected": true,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 127,
+                    "detecting_test_case_ids": [
+                        429
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 10,
+                    "bug_code": "BUG-032",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 100,
+                    "bug_test_run_id": 130,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 1,
+                    "bug_code": "BUG-023",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 136,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 2,
+                    "bug_code": "BUG-024",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 139,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 3,
+                    "bug_code": "BUG-025",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 142,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 4,
+                    "bug_code": "BUG-026",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 145,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 5,
+                    "bug_code": "BUG-027",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "PATCH",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 148,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 6,
+                    "bug_code": "BUG-028",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 151,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 7,
+                    "bug_code": "BUG-029",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/doctors/{doctor_id}/slots",
+                    "detected": true,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 154,
+                    "detecting_test_case_ids": [
+                        575
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 8,
+                    "bug_code": "BUG-030",
+                    "category": "AUTH_ERROR",
+                    "method": "DELETE",
+                    "path": "/appointments/{appointment_id}",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 157,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 9,
+                    "bug_code": "BUG-031",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/departments/{department_id}",
+                    "detected": true,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 160,
+                    "detecting_test_case_ids": [
+                        569
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 10,
+                    "bug_code": "BUG-032",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/appointments",
+                    "detected": false,
+                    "clean_test_run_id": 133,
+                    "bug_test_run_id": 163,
+                    "detecting_test_case_ids": []
+                }
+            ]
+        }
+    ]
+}

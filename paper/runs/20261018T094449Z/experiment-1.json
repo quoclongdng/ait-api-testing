@@ -1,0 +1,1224 @@
+{
+    "format_version": "1.0",
+    "exported_at": "2026-10-18T10:21:44.707415Z",
+    "experiments": [
+        {
+            "id": 1,
+            "name": "make experiment 20261018T094449Z · simple-store",
+            "strategy": "HYBRID",
+            "status": "COMPLETED",
+            "benchmark": {
+                "id": 3,
+                "slug": "simple-store",
+                "name": "Simple Store Benchmark API",
+                "version": "v1.0",
+                "bugs_total": 10
+            },
+            "config": {
+                "model": "qwen2.5-coder:7b",
+                "temperature": 0.2,
+                "seed": 42,
+                "seeds": [
+                    42,
+                    1024,
+                    2026,
+                    2027,
+                    2028
+                ],
+                "repetitions": 5,
+                "auth": null,
+                "business_rules": [
+                    {
+                        "code": "BR-SS-001",
+                        "path": "/categories",
+                        "method": "POST",
+                        "description": "Category slugs are unique: creating a category whose slug already exists is rejected with 409."
+                    },
+                    {
+                        "code": "BR-SS-002",
+                        "path": "/categories",
+                        "method": "GET",
+                        "description": "Categories are paginated with limit (1 to 100, default 50) and offset (0 or more); the response is a JSON array of categories."
+                    },
+                    {
+                        "code": "BR-SS-003",
+                        "path": "/categories/{id}",
+                        "method": "GET",
+                        "description": "Reading a category that does not exist returns 404 with a JSON error body."
+                    },
+                    {
+                        "code": "BR-SS-004",
+                        "path": "/products",
+                        "method": "POST",
+                        "description": "A product must reference an existing category (unknown category_id -> 404) and its SKU must be unique (duplicate SKU -> 409)."
+                    },
+                    {
+                        "code": "BR-SS-005",
+                        "path": "/products",
+                        "method": "GET",
+                        "description": "The optional category_id filter returns only the products of that category."
+                    },
+                    {
+                        "code": "BR-SS-006",
+                        "path": "/products/{id}",
+                        "method": "GET",
+                        "description": "Reading a product that does not exist returns 404 with a JSON error body."
+                    },
+                    {
+                        "code": "BR-SS-007",
+                        "path": "/products/{id}",
+                        "method": "PUT",
+                        "description": "Only the fields sent in the body are changed (omitted or null fields keep their value); moving a product to a category that does not exist returns 404."
+                    },
+                    {
+                        "code": "BR-SS-008",
+                        "path": "/products/{id}",
+                        "method": "DELETE",
+                        "description": "A deleted product can no longer be read: a later GET /products/{id} for it returns 404; deleting an unknown product returns 404."
+                    }
+                ],
+                "reset_per_case": true
+            },
+            "started_at": "2026-10-18T09:45:50.000000Z",
+            "finished_at": "2026-10-18T10:21:24.000000Z",
+            "metrics": {
+                "stddev": {
+                    "redundancy": 0,
+                    "prompt_tokens": 8092.1567,
+                    "validity_rate": 0.0311,
+                    "mutation_score": 0.0447,
+                    "executable_rate": 0,
+                    "completion_tokens": 923.0281,
+                    "endpoint_coverage": 0,
+                    "execution_time_ms": 1028.262,
+                    "bug_detection_rate": 0.0447,
+                    "generation_time_ms": 180669.4877,
+                    "false_positive_rate": 0.0233,
+                    "status_code_coverage": 0.0372
+                },
+                "bugs_total": 10,
+                "redundancy": 0,
+                "repetitions": [
+                    {
+                        "seed": 42,
+                        "valid": 76,
+                        "duplicate": 0,
+                        "generated": 82,
+                        "bugs_total": 10,
+                        "clean_fail": 6,
+                        "clean_pass": 70,
+                        "redundancy": 0,
+                        "repetition": 1,
+                        "clean_error": 0,
+                        "bugs_detected": 8,
+                        "prompt_tokens": 64867,
+                        "validity_rate": 0.9268,
+                        "mutation_score": 0.8,
+                        "executable_rate": 1,
+                        "completion_tokens": 10973,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 4817,
+                        "bug_detection_rate": 0.8,
+                        "generation_time_ms": 188310,
+                        "false_positive_rate": 0.0789,
+                        "status_code_coverage": 0.9167
+                    },
+                    {
+                        "seed": 1024,
+                        "valid": 76,
+                        "duplicate": 0,
+                        "generated": 84,
+                        "bugs_total": 10,
+                        "clean_fail": 5,
+                        "clean_pass": 71,
+                        "redundancy": 0,
+                        "repetition": 2,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 63912,
+                        "validity_rate": 0.9048,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 11368,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 5969,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 256646,
+                        "false_positive_rate": 0.0658,
+                        "status_code_coverage": 0.9583
+                    },
+                    {
+                        "seed": 2026,
+                        "valid": 83,
+                        "duplicate": 0,
+                        "generated": 86,
+                        "bugs_total": 10,
+                        "clean_fail": 9,
+                        "clean_pass": 74,
+                        "redundancy": 0,
+                        "repetition": 3,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 52273,
+                        "validity_rate": 0.9651,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 11701,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 7628,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 447490,
+                        "false_positive_rate": 0.1084,
+                        "status_code_coverage": 1
+                    },
+                    {
+                        "seed": 2027,
+                        "valid": 75,
+                        "duplicate": 0,
+                        "generated": 85,
+                        "bugs_total": 10,
+                        "clean_fail": 4,
+                        "clean_pass": 71,
+                        "redundancy": 0,
+                        "repetition": 4,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 74733,
+                        "validity_rate": 0.8824,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 13393,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 6604,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 610844,
+                        "false_positive_rate": 0.0533,
+                        "status_code_coverage": 0.9167
+                    },
+                    {
+                        "seed": 2028,
+                        "valid": 77,
+                        "duplicate": 0,
+                        "generated": 85,
+                        "bugs_total": 10,
+                        "clean_fail": 4,
+                        "clean_pass": 73,
+                        "redundancy": 0,
+                        "repetition": 5,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 67199,
+                        "validity_rate": 0.9059,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 11927,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 6556,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 537186,
+                        "false_positive_rate": 0.0519,
+                        "status_code_coverage": 0.9167
+                    }
+                ],
+                "prompt_tokens": 64597,
+                "validity_rate": 0.917,
+                "mutation_score": 0.88,
+                "executable_rate": 1,
+                "completion_tokens": 11872,
+                "endpoint_coverage": 1,
+                "execution_time_ms": 6315,
+                "bug_detection_rate": 0.88,
+                "bugs_detected_mean": 8.8,
+                "generation_time_ms": 408095,
+                "false_positive_rate": 0.0717,
+                "status_code_coverage": 0.9417
+            },
+            "repetitions": [
+                {
+                    "repetition": 1,
+                    "seed": 42,
+                    "generation_job_id": 2,
+                    "generation_job_ids": [
+                        1,
+                        2
+                    ],
+                    "test_suite_id": 1,
+                    "clean_test_run_id": 1,
+                    "bug_runs": {
+                        "BUG-001": 2,
+                        "BUG-002": 3,
+                        "BUG-003": 4,
+                        "BUG-004": 5,
+                        "BUG-005": 6,
+                        "BUG-006": 7,
+                        "BUG-007": 8,
+                        "BUG-008": 9,
+                        "BUG-009": 10,
+                        "BUG-010": 11
+                    },
+                    "metrics": {
+                        "seed": 42,
+                        "valid": 76,
+                        "duplicate": 0,
+                        "generated": 82,
+                        "bugs_total": 10,
+                        "clean_fail": 6,
+                        "clean_pass": 70,
+                        "redundancy": 0,
+                        "repetition": 1,
+                        "clean_error": 0,
+                        "bugs_detected": 8,
+                        "prompt_tokens": 64867,
+                        "validity_rate": 0.9268,
+                        "mutation_score": 0.8,
+                        "executable_rate": 1,
+                        "completion_tokens": 10973,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 4817,
+                        "bug_detection_rate": 0.8,
+                        "generation_time_ms": 188310,
+                        "false_positive_rate": 0.0789,
+                        "status_code_coverage": 0.9167
+                    }
+                },
+                {
+                    "repetition": 2,
+                    "seed": 1024,
+                    "generation_job_id": 4,
+                    "generation_job_ids": [
+                        3,
+                        4
+                    ],
+                    "test_suite_id": 2,
+                    "clean_test_run_id": 12,
+                    "bug_runs": {
+                        "BUG-001": 13,
+                        "BUG-002": 14,
+                        "BUG-003": 15,
+                        "BUG-004": 16,
+                        "BUG-005": 17,
+                        "BUG-006": 18,
+                        "BUG-007": 19,
+                        "BUG-008": 20,
+                        "BUG-009": 21,
+                        "BUG-010": 22
+                    },
+                    "metrics": {
+                        "seed": 1024,
+                        "valid": 76,
+                        "duplicate": 0,
+                        "generated": 84,
+                        "bugs_total": 10,
+                        "clean_fail": 5,
+                        "clean_pass": 71,
+                        "redundancy": 0,
+                        "repetition": 2,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 63912,
+                        "validity_rate": 0.9048,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 11368,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 5969,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 256646,
+                        "false_positive_rate": 0.0658,
+                        "status_code_coverage": 0.9583
+                    }
+                },
+                {
+                    "repetition": 3,
+                    "seed": 2026,
+                    "generation_job_id": 6,
+                    "generation_job_ids": [
+                        5,
+                        6
+                    ],
+                    "test_suite_id": 3,
+                    "clean_test_run_id": 23,
+                    "bug_runs": {
+                        "BUG-001": 24,
+                        "BUG-002": 25,
+                        "BUG-003": 26,
+                        "BUG-004": 27,
+                        "BUG-005": 28,
+                        "BUG-006": 29,
+                        "BUG-007": 30,
+                        "BUG-008": 31,
+                        "BUG-009": 32,
+                        "BUG-010": 33
+                    },
+                    "metrics": {
+                        "seed": 2026,
+                        "valid": 83,
+                        "duplicate": 0,
+                        "generated": 86,
+                        "bugs_total": 10,
+                        "clean_fail": 9,
+                        "clean_pass": 74,
+                        "redundancy": 0,
+                        "repetition": 3,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 52273,
+                        "validity_rate": 0.9651,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 11701,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 7628,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 447490,
+                        "false_positive_rate": 0.1084,
+                        "status_code_coverage": 1
+                    }
+                },
+                {
+                    "repetition": 4,
+                    "seed": 2027,
+                    "generation_job_id": 8,
+                    "generation_job_ids": [
+                        7,
+                        8
+                    ],
+                    "test_suite_id": 4,
+                    "clean_test_run_id": 34,
+                    "bug_runs": {
+                        "BUG-001": 35,
+                        "BUG-002": 36,
+                        "BUG-003": 37,
+                        "BUG-004": 38,
+                        "BUG-005": 39,
+                        "BUG-006": 40,
+                        "BUG-007": 41,
+                        "BUG-008": 42,
+                        "BUG-009": 43,
+                        "BUG-010": 44
+                    },
+                    "metrics": {
+                        "seed": 2027,
+                        "valid": 75,
+                        "duplicate": 0,
+                        "generated": 85,
+                        "bugs_total": 10,
+                        "clean_fail": 4,
+                        "clean_pass": 71,
+                        "redundancy": 0,
+                        "repetition": 4,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 74733,
+                        "validity_rate": 0.8824,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 13393,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 6604,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 610844,
+                        "false_positive_rate": 0.0533,
+                        "status_code_coverage": 0.9167
+                    }
+                },
+                {
+                    "repetition": 5,
+                    "seed": 2028,
+                    "generation_job_id": 10,
+                    "generation_job_ids": [
+                        9,
+                        10
+                    ],
+                    "test_suite_id": 5,
+                    "clean_test_run_id": 45,
+                    "bug_runs": {
+                        "BUG-001": 46,
+                        "BUG-002": 47,
+                        "BUG-003": 48,
+                        "BUG-004": 49,
+                        "BUG-005": 50,
+                        "BUG-006": 51,
+                        "BUG-007": 52,
+                        "BUG-008": 53,
+                        "BUG-009": 54,
+                        "BUG-010": 55
+                    },
+                    "metrics": {
+                        "seed": 2028,
+                        "valid": 77,
+                        "duplicate": 0,
+                        "generated": 85,
+                        "bugs_total": 10,
+                        "clean_fail": 4,
+                        "clean_pass": 73,
+                        "redundancy": 0,
+                        "repetition": 5,
+                        "clean_error": 0,
+                        "bugs_detected": 9,
+                        "prompt_tokens": 67199,
+                        "validity_rate": 0.9059,
+                        "mutation_score": 0.9,
+                        "executable_rate": 1,
+                        "completion_tokens": 11927,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 6556,
+                        "bug_detection_rate": 0.9,
+                        "generation_time_ms": 537186,
+                        "false_positive_rate": 0.0519,
+                        "status_code_coverage": 0.9167
+                    }
+                }
+            ],
+            "bug_detections": [
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 23,
+                    "bug_code": "BUG-001",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 2,
+                    "detecting_test_case_ids": [
+                        35,
+                        40
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 24,
+                    "bug_code": "BUG-002",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 3,
+                    "detecting_test_case_ids": [
+                        41,
+                        74
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 25,
+                    "bug_code": "BUG-003",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 4,
+                    "detecting_test_case_ids": [
+                        34,
+                        76,
+                        79,
+                        81
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 26,
+                    "bug_code": "BUG-004",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 5,
+                    "detecting_test_case_ids": [
+                        46
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 27,
+                    "bug_code": "BUG-005",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 6,
+                    "detecting_test_case_ids": [
+                        44
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 28,
+                    "bug_code": "BUG-006",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "PUT",
+                    "path": "/products/{id}",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 7,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 29,
+                    "bug_code": "BUG-007",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 8,
+                    "detecting_test_case_ids": [
+                        29,
+                        31
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 30,
+                    "bug_code": "BUG-008",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/categories",
+                    "detected": false,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 9,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 31,
+                    "bug_code": "BUG-009",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 10,
+                    "detecting_test_case_ids": [
+                        57,
+                        76,
+                        81
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 32,
+                    "bug_code": "BUG-010",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 1,
+                    "bug_test_run_id": 11,
+                    "detecting_test_case_ids": [
+                        45
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 23,
+                    "bug_code": "BUG-001",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 13,
+                    "detecting_test_case_ids": [
+                        117,
+                        122
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 24,
+                    "bug_code": "BUG-002",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 14,
+                    "detecting_test_case_ids": [
+                        123,
+                        156
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 25,
+                    "bug_code": "BUG-003",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 15,
+                    "detecting_test_case_ids": [
+                        116,
+                        158,
+                        159,
+                        160,
+                        164,
+                        166
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 26,
+                    "bug_code": "BUG-004",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 16,
+                    "detecting_test_case_ids": [
+                        128,
+                        159,
+                        160
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 27,
+                    "bug_code": "BUG-005",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 17,
+                    "detecting_test_case_ids": [
+                        126
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 28,
+                    "bug_code": "BUG-006",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "PUT",
+                    "path": "/products/{id}",
+                    "detected": false,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 18,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 29,
+                    "bug_code": "BUG-007",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 19,
+                    "detecting_test_case_ids": [
+                        111,
+                        113
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 30,
+                    "bug_code": "BUG-008",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/categories",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 20,
+                    "detecting_test_case_ids": [
+                        149
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 31,
+                    "bug_code": "BUG-009",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 21,
+                    "detecting_test_case_ids": [
+                        139,
+                        160,
+                        164,
+                        166
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 32,
+                    "bug_code": "BUG-010",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 12,
+                    "bug_test_run_id": 22,
+                    "detecting_test_case_ids": [
+                        127
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 23,
+                    "bug_code": "BUG-001",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 24,
+                    "detecting_test_case_ids": [
+                        201,
+                        206
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 24,
+                    "bug_code": "BUG-002",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 25,
+                    "detecting_test_case_ids": [
+                        207
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 25,
+                    "bug_code": "BUG-003",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 26,
+                    "detecting_test_case_ids": [
+                        200,
+                        238,
+                        244,
+                        249,
+                        250,
+                        252
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 26,
+                    "bug_code": "BUG-004",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 27,
+                    "detecting_test_case_ids": [
+                        212,
+                        239,
+                        245
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 27,
+                    "bug_code": "BUG-005",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 28,
+                    "detecting_test_case_ids": [
+                        210,
+                        244
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 28,
+                    "bug_code": "BUG-006",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "PUT",
+                    "path": "/products/{id}",
+                    "detected": false,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 29,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 29,
+                    "bug_code": "BUG-007",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 30,
+                    "detecting_test_case_ids": [
+                        195,
+                        197
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 30,
+                    "bug_code": "BUG-008",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/categories",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 31,
+                    "detecting_test_case_ids": [
+                        233
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 31,
+                    "bug_code": "BUG-009",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 32,
+                    "detecting_test_case_ids": [
+                        223,
+                        244,
+                        250,
+                        252
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 32,
+                    "bug_code": "BUG-010",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 23,
+                    "bug_test_run_id": 33,
+                    "detecting_test_case_ids": [
+                        211
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 23,
+                    "bug_code": "BUG-001",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 35,
+                    "detecting_test_case_ids": [
+                        287,
+                        292
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 24,
+                    "bug_code": "BUG-002",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 36,
+                    "detecting_test_case_ids": [
+                        293,
+                        327
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 25,
+                    "bug_code": "BUG-003",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 37,
+                    "detecting_test_case_ids": [
+                        286,
+                        329,
+                        335,
+                        337
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 26,
+                    "bug_code": "BUG-004",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 38,
+                    "detecting_test_case_ids": [
+                        298,
+                        329,
+                        330
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 27,
+                    "bug_code": "BUG-005",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 39,
+                    "detecting_test_case_ids": [
+                        296
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 28,
+                    "bug_code": "BUG-006",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "PUT",
+                    "path": "/products/{id}",
+                    "detected": false,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 40,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 29,
+                    "bug_code": "BUG-007",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 41,
+                    "detecting_test_case_ids": [
+                        281,
+                        283
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 30,
+                    "bug_code": "BUG-008",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/categories",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 42,
+                    "detecting_test_case_ids": [
+                        317
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 31,
+                    "bug_code": "BUG-009",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 43,
+                    "detecting_test_case_ids": [
+                        309,
+                        329,
+                        335,
+                        337
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 32,
+                    "bug_code": "BUG-010",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 34,
+                    "bug_test_run_id": 44,
+                    "detecting_test_case_ids": [
+                        297
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 23,
+                    "bug_code": "BUG-001",
+                    "category": "VALIDATION_MISSING",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 46,
+                    "detecting_test_case_ids": [
+                        372,
+                        377
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 24,
+                    "bug_code": "BUG-002",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 47,
+                    "detecting_test_case_ids": [
+                        378,
+                        413
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 25,
+                    "bug_code": "BUG-003",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 48,
+                    "detecting_test_case_ids": [
+                        371,
+                        409,
+                        411,
+                        415,
+                        417,
+                        418,
+                        421
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 26,
+                    "bug_code": "BUG-004",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 49,
+                    "detecting_test_case_ids": [
+                        383,
+                        416,
+                        417
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 27,
+                    "bug_code": "BUG-005",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 50,
+                    "detecting_test_case_ids": [
+                        381
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 28,
+                    "bug_code": "BUG-006",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "PUT",
+                    "path": "/products/{id}",
+                    "detected": false,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 51,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 29,
+                    "bug_code": "BUG-007",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 52,
+                    "detecting_test_case_ids": [
+                        366,
+                        368
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 30,
+                    "bug_code": "BUG-008",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/categories",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 53,
+                    "detecting_test_case_ids": [
+                        404
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 31,
+                    "bug_code": "BUG-009",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 54,
+                    "detecting_test_case_ids": [
+                        394,
+                        411,
+                        417,
+                        421
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 32,
+                    "bug_code": "BUG-010",
+                    "category": "VALIDATION_MISSING",
+                    "method": "GET",
+                    "path": "/products/{id}",
+                    "detected": true,
+                    "clean_test_run_id": 45,
+                    "bug_test_run_id": 55,
+                    "detecting_test_case_ids": [
+                        382
+                    ]
+                }
+            ]
+        }
+    ]
+}

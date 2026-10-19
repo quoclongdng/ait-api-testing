@@ -1,0 +1,6 @@
+seed,variant,host,exit_code,seconds
+42,clean,simple-store,1,27.61
+1024,clean,simple-store,1,26.68
+2026,clean,simple-store,1,19.14
+2027,clean,simple-store,1,29.48
+2028,clean,simple-store,1,30.44

@@ -1,0 +1,1333 @@
+{
+    "format_version": "1.0",
+    "exported_at": "2026-10-16T04:35:11.741128Z",
+    "experiments": [
+        {
+            "id": 2,
+            "name": "make experiment 20261016T040252Z · ecommerce-order",
+            "strategy": "LLM",
+            "status": "COMPLETED",
+            "benchmark": {
+                "id": 2,
+                "slug": "ecommerce-order",
+                "name": "E-Commerce Order Benchmark API",
+                "version": "v1.0",
+                "bugs_total": 12
+            },
+            "config": {
+                "model": "qwen2.5-coder:7b",
+                "temperature": 0.2,
+                "seed": 42,
+                "seeds": [
+                    42,
+                    1024,
+                    2026,
+                    2027,
+                    2028
+                ],
+                "repetitions": 5,
+                "auth": {
+                    "roles": {
+                        "admin": {
+                            "token": "admin-token",
+                            "description": "ADMIN (user_id 99), may read every order and the admin order listing"
+                        },
+                        "customer": {
+                            "token": "customer-alice-token",
+                            "description": "CUSTOMER alice (user_id 1, owns cart 101)"
+                        },
+                        "customer_bob": {
+                            "token": "customer-bob-token",
+                            "description": "CUSTOMER bob (user_id 2, owns cart 102), a second customer for ownership checks"
+                        }
+                    },
+                    "scheme": "bearer",
+                    "operations": [
+                        {
+                            "path": "/admin/orders",
+                            "role": "admin",
+                            "method": "GET",
+                            "forbidden_roles": [
+                                "customer"
+                            ]
+                        },
+                        {
+                            "path": "/cart",
+                            "role": null,
+                            "method": "GET",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/cart/items",
+                            "role": null,
+                            "method": "POST",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/cart/items/{item_id}",
+                            "role": null,
+                            "method": "DELETE",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/checkout",
+                            "role": null,
+                            "method": "POST",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/orders",
+                            "role": null,
+                            "method": "POST",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/orders/{order_id}/pay",
+                            "role": null,
+                            "method": "POST",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/orders/{order_id}/cancel",
+                            "role": null,
+                            "method": "POST",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        },
+                        {
+                            "path": "/coupons/apply",
+                            "role": null,
+                            "method": "POST",
+                            "forbidden_roles": [
+                                "admin"
+                            ]
+                        }
+                    ],
+                    "default_role": "customer"
+                },
+                "business_rules": [
+                    {
+                        "code": "BR-EO-001",
+                        "path": "/products",
+                        "method": "GET",
+                        "description": "The product catalog is public (no token needed) and lists every product with its current stock."
+                    },
+                    {
+                        "code": "BR-EO-002",
+                        "path": "/products/{product_id}",
+                        "method": "GET",
+                        "description": "An unknown product id returns 404 with an error object (detail.code, detail.message)."
+                    },
+                    {
+                        "code": "BR-EO-003",
+                        "path": "/cart",
+                        "method": "GET",
+                        "description": "Each customer has one cart: the response is the caller's own cart (alice owns cart 101, bob cart 102) and total_amount is the sum of the items' line_total."
+                    },
+                    {
+                        "code": "BR-EO-004",
+                        "path": "/cart/items",
+                        "method": "POST",
+                        "description": "The added quantity is between 1 and 100 (otherwise 422) and an unknown product_id returns 404."
+                    },
+                    {
+                        "code": "BR-EO-005",
+                        "path": "/cart/items/{item_id}",
+                        "method": "DELETE",
+                        "description": "Removing an item of the caller's cart returns 204 and the item no longer appears in GET /cart."
+                    },
+                    {
+                        "code": "BR-EO-006",
+                        "path": "/checkout",
+                        "method": "POST",
+                        "description": "Only the caller's own cart can be checked out (another customer's cart_id -> 403); the new order starts in status PENDING."
+                    },
+                    {
+                        "code": "BR-EO-007",
+                        "path": "/orders",
+                        "method": "POST",
+                        "description": "Duplicate product lines are combined before stock is validated; a new order starts in status PENDING and does not reserve stock."
+                    },
+                    {
+                        "code": "BR-EO-008",
+                        "path": "/orders/{order_id}",
+                        "method": "GET",
+                        "description": "An unknown order id returns 404; ADMIN may read any customer's order."
+                    },
+                    {
+                        "code": "BR-EO-009",
+                        "path": "/orders/{order_id}/pay",
+                        "method": "POST",
+                        "description": "Paying an owned PENDING order moves it to PAID; stock is validated again and deducted when the payment succeeds."
+                    },
+                    {
+                        "code": "BR-EO-010",
+                        "path": "/orders/{order_id}/cancel",
+                        "method": "POST",
+                        "description": "A cancelled order has status CANCELLED; cancelling a PAID order restores its deducted stock."
+                    },
+                    {
+                        "code": "BR-EO-011",
+                        "path": "/admin/orders",
+                        "method": "GET",
+                        "description": "The order listing is restricted to the ADMIN role (other roles -> 403) and returns the orders of every customer."
+                    },
+                    {
+                        "code": "BR-EO-012",
+                        "path": "/coupons/apply",
+                        "method": "POST",
+                        "description": "Coupon SAVE10 gives a 10% discount on an owned cart whose subtotal is at least 100; an unknown code returns 404."
+                    }
+                ],
+                "reset_per_case": true
+            },
+            "started_at": "2026-10-16T04:03:47.000000Z",
+            "finished_at": "2026-10-16T04:34:58.000000Z",
+            "metrics": {
+                "stddev": {
+                    "redundancy": 0.014,
+                    "prompt_tokens": 7878.1002,
+                    "validity_rate": 0.0478,
+                    "mutation_score": 0.0457,
+                    "executable_rate": 0,
+                    "completion_tokens": 911.5859,
+                    "endpoint_coverage": 0.0421,
+                    "execution_time_ms": 261.2217,
+                    "bug_detection_rate": 0.0457,
+                    "generation_time_ms": 12323.2688,
+                    "false_positive_rate": 0.0372,
+                    "status_code_coverage": 0.0542
+                },
+                "bugs_total": 12,
+                "redundancy": 0.0063,
+                "repetitions": [
+                    {
+                        "seed": 42,
+                        "valid": 27,
+                        "duplicate": 0,
+                        "generated": 31,
+                        "bugs_total": 12,
+                        "clean_fail": 11,
+                        "clean_pass": 16,
+                        "redundancy": 0,
+                        "repetition": 1,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 50972,
+                        "validity_rate": 0.871,
+                        "mutation_score": 0.1667,
+                        "executable_rate": 1,
+                        "completion_tokens": 6979,
+                        "endpoint_coverage": 0.9231,
+                        "execution_time_ms": 1330,
+                        "bug_detection_rate": 0.1667,
+                        "generation_time_ms": 113881,
+                        "false_positive_rate": 0.4074,
+                        "status_code_coverage": 0.4286
+                    },
+                    {
+                        "seed": 1024,
+                        "valid": 28,
+                        "duplicate": 1,
+                        "generated": 32,
+                        "bugs_total": 12,
+                        "clean_fail": 10,
+                        "clean_pass": 18,
+                        "redundancy": 0.0313,
+                        "repetition": 2,
+                        "clean_error": 0,
+                        "bugs_detected": 1,
+                        "prompt_tokens": 51440,
+                        "validity_rate": 0.875,
+                        "mutation_score": 0.0833,
+                        "executable_rate": 1,
+                        "completion_tokens": 6533,
+                        "endpoint_coverage": 0.9231,
+                        "execution_time_ms": 1802,
+                        "bug_detection_rate": 0.0833,
+                        "generation_time_ms": 104719,
+                        "false_positive_rate": 0.3571,
+                        "status_code_coverage": 0.4107
+                    },
+                    {
+                        "seed": 2026,
+                        "valid": 29,
+                        "duplicate": 0,
+                        "generated": 31,
+                        "bugs_total": 12,
+                        "clean_fail": 13,
+                        "clean_pass": 16,
+                        "redundancy": 0,
+                        "repetition": 3,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 48331,
+                        "validity_rate": 0.9355,
+                        "mutation_score": 0.1667,
+                        "executable_rate": 1,
+                        "completion_tokens": 6715,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1489,
+                        "bug_detection_rate": 0.1667,
+                        "generation_time_ms": 104008,
+                        "false_positive_rate": 0.4483,
+                        "status_code_coverage": 0.4643
+                    },
+                    {
+                        "seed": 2027,
+                        "valid": 24,
+                        "duplicate": 0,
+                        "generated": 28,
+                        "bugs_total": 12,
+                        "clean_fail": 9,
+                        "clean_pass": 15,
+                        "redundancy": 0,
+                        "repetition": 4,
+                        "clean_error": 0,
+                        "bugs_detected": 1,
+                        "prompt_tokens": 59809,
+                        "validity_rate": 0.8571,
+                        "mutation_score": 0.0833,
+                        "executable_rate": 1,
+                        "completion_tokens": 8002,
+                        "endpoint_coverage": 0.9231,
+                        "execution_time_ms": 1124,
+                        "bug_detection_rate": 0.0833,
+                        "generation_time_ms": 126589,
+                        "false_positive_rate": 0.375,
+                        "status_code_coverage": 0.3571
+                    },
+                    {
+                        "seed": 2028,
+                        "valid": 30,
+                        "duplicate": 0,
+                        "generated": 31,
+                        "bugs_total": 12,
+                        "clean_fail": 11,
+                        "clean_pass": 19,
+                        "redundancy": 0,
+                        "repetition": 5,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 37887,
+                        "validity_rate": 0.9677,
+                        "mutation_score": 0.1667,
+                        "executable_rate": 1,
+                        "completion_tokens": 5463,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1622,
+                        "bug_detection_rate": 0.1667,
+                        "generation_time_ms": 93774,
+                        "false_positive_rate": 0.3667,
+                        "status_code_coverage": 0.5
+                    }
+                ],
+                "prompt_tokens": 49688,
+                "validity_rate": 0.9013,
+                "mutation_score": 0.1333,
+                "executable_rate": 1,
+                "completion_tokens": 6738,
+                "endpoint_coverage": 0.9539,
+                "execution_time_ms": 1473,
+                "bug_detection_rate": 0.1333,
+                "bugs_detected_mean": 1.6,
+                "generation_time_ms": 108594,
+                "false_positive_rate": 0.3909,
+                "status_code_coverage": 0.4321
+            },
+            "repetitions": [
+                {
+                    "repetition": 1,
+                    "seed": 42,
+                    "generation_job_id": 2,
+                    "generation_job_ids": [
+                        2
+                    ],
+                    "test_suite_id": 2,
+                    "clean_test_run_id": 2,
+                    "bug_runs": {
+                        "BUG-011": 5,
+                        "BUG-012": 8,
+                        "BUG-013": 11,
+                        "BUG-014": 14,
+                        "BUG-015": 17,
+                        "BUG-016": 20,
+                        "BUG-017": 23,
+                        "BUG-018": 26,
+                        "BUG-019": 29,
+                        "BUG-020": 32,
+                        "BUG-021": 35,
+                        "BUG-022": 38
+                    },
+                    "metrics": {
+                        "seed": 42,
+                        "valid": 27,
+                        "duplicate": 0,
+                        "generated": 31,
+                        "bugs_total": 12,
+                        "clean_fail": 11,
+                        "clean_pass": 16,
+                        "redundancy": 0,
+                        "repetition": 1,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 50972,
+                        "validity_rate": 0.871,
+                        "mutation_score": 0.1667,
+                        "executable_rate": 1,
+                        "completion_tokens": 6979,
+                        "endpoint_coverage": 0.9231,
+                        "execution_time_ms": 1330,
+                        "bug_detection_rate": 0.1667,
+                        "generation_time_ms": 113881,
+                        "false_positive_rate": 0.4074,
+                        "status_code_coverage": 0.4286
+                    }
+                },
+                {
+                    "repetition": 2,
+                    "seed": 1024,
+                    "generation_job_id": 6,
+                    "generation_job_ids": [
+                        6
+                    ],
+                    "test_suite_id": 5,
+                    "clean_test_run_id": 41,
+                    "bug_runs": {
+                        "BUG-011": 44,
+                        "BUG-012": 47,
+                        "BUG-013": 50,
+                        "BUG-014": 53,
+                        "BUG-015": 56,
+                        "BUG-016": 59,
+                        "BUG-017": 62,
+                        "BUG-018": 65,
+                        "BUG-019": 68,
+                        "BUG-020": 71,
+                        "BUG-021": 74,
+                        "BUG-022": 77
+                    },
+                    "metrics": {
+                        "seed": 1024,
+                        "valid": 28,
+                        "duplicate": 1,
+                        "generated": 32,
+                        "bugs_total": 12,
+                        "clean_fail": 10,
+                        "clean_pass": 18,
+                        "redundancy": 0.0313,
+                        "repetition": 2,
+                        "clean_error": 0,
+                        "bugs_detected": 1,
+                        "prompt_tokens": 51440,
+                        "validity_rate": 0.875,
+                        "mutation_score": 0.0833,
+                        "executable_rate": 1,
+                        "completion_tokens": 6533,
+                        "endpoint_coverage": 0.9231,
+                        "execution_time_ms": 1802,
+                        "bug_detection_rate": 0.0833,
+                        "generation_time_ms": 104719,
+                        "false_positive_rate": 0.3571,
+                        "status_code_coverage": 0.4107
+                    }
+                },
+                {
+                    "repetition": 3,
+                    "seed": 2026,
+                    "generation_job_id": 10,
+                    "generation_job_ids": [
+                        10
+                    ],
+                    "test_suite_id": 8,
+                    "clean_test_run_id": 80,
+                    "bug_runs": {
+                        "BUG-011": 83,
+                        "BUG-012": 86,
+                        "BUG-013": 89,
+                        "BUG-014": 92,
+                        "BUG-015": 95,
+                        "BUG-016": 98,
+                        "BUG-017": 101,
+                        "BUG-018": 104,
+                        "BUG-019": 107,
+                        "BUG-020": 110,
+                        "BUG-021": 113,
+                        "BUG-022": 116
+                    },
+                    "metrics": {
+                        "seed": 2026,
+                        "valid": 29,
+                        "duplicate": 0,
+                        "generated": 31,
+                        "bugs_total": 12,
+                        "clean_fail": 13,
+                        "clean_pass": 16,
+                        "redundancy": 0,
+                        "repetition": 3,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 48331,
+                        "validity_rate": 0.9355,
+                        "mutation_score": 0.1667,
+                        "executable_rate": 1,
+                        "completion_tokens": 6715,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1489,
+                        "bug_detection_rate": 0.1667,
+                        "generation_time_ms": 104008,
+                        "false_positive_rate": 0.4483,
+                        "status_code_coverage": 0.4643
+                    }
+                },
+                {
+                    "repetition": 4,
+                    "seed": 2027,
+                    "generation_job_id": 14,
+                    "generation_job_ids": [
+                        14
+                    ],
+                    "test_suite_id": 11,
+                    "clean_test_run_id": 119,
+                    "bug_runs": {
+                        "BUG-011": 122,
+                        "BUG-012": 125,
+                        "BUG-013": 128,
+                        "BUG-014": 131,
+                        "BUG-015": 134,
+                        "BUG-016": 137,
+                        "BUG-017": 140,
+                        "BUG-018": 143,
+                        "BUG-019": 146,
+                        "BUG-020": 149,
+                        "BUG-021": 152,
+                        "BUG-022": 155
+                    },
+                    "metrics": {
+                        "seed": 2027,
+                        "valid": 24,
+                        "duplicate": 0,
+                        "generated": 28,
+                        "bugs_total": 12,
+                        "clean_fail": 9,
+                        "clean_pass": 15,
+                        "redundancy": 0,
+                        "repetition": 4,
+                        "clean_error": 0,
+                        "bugs_detected": 1,
+                        "prompt_tokens": 59809,
+                        "validity_rate": 0.8571,
+                        "mutation_score": 0.0833,
+                        "executable_rate": 1,
+                        "completion_tokens": 8002,
+                        "endpoint_coverage": 0.9231,
+                        "execution_time_ms": 1124,
+                        "bug_detection_rate": 0.0833,
+                        "generation_time_ms": 126589,
+                        "false_positive_rate": 0.375,
+                        "status_code_coverage": 0.3571
+                    }
+                },
+                {
+                    "repetition": 5,
+                    "seed": 2028,
+                    "generation_job_id": 18,
+                    "generation_job_ids": [
+                        18
+                    ],
+                    "test_suite_id": 14,
+                    "clean_test_run_id": 158,
+                    "bug_runs": {
+                        "BUG-011": 161,
+                        "BUG-012": 164,
+                        "BUG-013": 167,
+                        "BUG-014": 170,
+                        "BUG-015": 173,
+                        "BUG-016": 176,
+                        "BUG-017": 179,
+                        "BUG-018": 182,
+                        "BUG-019": 185,
+                        "BUG-020": 188,
+                        "BUG-021": 191,
+                        "BUG-022": 194
+                    },
+                    "metrics": {
+                        "seed": 2028,
+                        "valid": 30,
+                        "duplicate": 0,
+                        "generated": 31,
+                        "bugs_total": 12,
+                        "clean_fail": 11,
+                        "clean_pass": 19,
+                        "redundancy": 0,
+                        "repetition": 5,
+                        "clean_error": 0,
+                        "bugs_detected": 2,
+                        "prompt_tokens": 37887,
+                        "validity_rate": 0.9677,
+                        "mutation_score": 0.1667,
+                        "executable_rate": 1,
+                        "completion_tokens": 5463,
+                        "endpoint_coverage": 1,
+                        "execution_time_ms": 1622,
+                        "bug_detection_rate": 0.1667,
+                        "generation_time_ms": 93774,
+                        "false_positive_rate": 0.3667,
+                        "status_code_coverage": 0.5
+                    }
+                }
+            ],
+            "bug_detections": [
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 11,
+                    "bug_code": "BUG-011",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 5,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 12,
+                    "bug_code": "BUG-012",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 8,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 13,
+                    "bug_code": "BUG-013",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 11,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 14,
+                    "bug_code": "BUG-014",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 14,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 15,
+                    "bug_code": "BUG-015",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/pay",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 17,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 16,
+                    "bug_code": "BUG-016",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/cancel",
+                    "detected": true,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 20,
+                    "detecting_test_case_ids": [
+                        103
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 17,
+                    "bug_code": "BUG-017",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/admin/orders",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 23,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 18,
+                    "bug_code": "BUG-018",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/orders/{order_id}",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 26,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 19,
+                    "bug_code": "BUG-019",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "POST",
+                    "path": "/orders",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 29,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 20,
+                    "bug_code": "BUG-020",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/coupons/apply",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 32,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 21,
+                    "bug_code": "BUG-021",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/cart/items/{item_id}",
+                    "detected": true,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 35,
+                    "detecting_test_case_ids": [
+                        89
+                    ]
+                },
+                {
+                    "repetition": 1,
+                    "benchmark_bug_id": 22,
+                    "bug_code": "BUG-022",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/cart",
+                    "detected": false,
+                    "clean_test_run_id": 2,
+                    "bug_test_run_id": 38,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 11,
+                    "bug_code": "BUG-011",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 44,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 12,
+                    "bug_code": "BUG-012",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 47,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 13,
+                    "bug_code": "BUG-013",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 50,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 14,
+                    "bug_code": "BUG-014",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 53,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 15,
+                    "bug_code": "BUG-015",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/pay",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 56,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 16,
+                    "bug_code": "BUG-016",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/cancel",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 59,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 17,
+                    "bug_code": "BUG-017",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/admin/orders",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 62,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 18,
+                    "bug_code": "BUG-018",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/orders/{order_id}",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 65,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 19,
+                    "bug_code": "BUG-019",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "POST",
+                    "path": "/orders",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 68,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 20,
+                    "bug_code": "BUG-020",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/coupons/apply",
+                    "detected": true,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 71,
+                    "detecting_test_case_ids": [
+                        333
+                    ]
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 21,
+                    "bug_code": "BUG-021",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/cart/items/{item_id}",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 74,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 2,
+                    "benchmark_bug_id": 22,
+                    "bug_code": "BUG-022",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/cart",
+                    "detected": false,
+                    "clean_test_run_id": 41,
+                    "bug_test_run_id": 77,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 11,
+                    "bug_code": "BUG-011",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 83,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 12,
+                    "bug_code": "BUG-012",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 86,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 13,
+                    "bug_code": "BUG-013",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 89,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 14,
+                    "bug_code": "BUG-014",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 92,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 15,
+                    "bug_code": "BUG-015",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/pay",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 95,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 16,
+                    "bug_code": "BUG-016",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/cancel",
+                    "detected": true,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 98,
+                    "detecting_test_case_ids": [
+                        557
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 17,
+                    "bug_code": "BUG-017",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/admin/orders",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 101,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 18,
+                    "bug_code": "BUG-018",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/orders/{order_id}",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 104,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 19,
+                    "bug_code": "BUG-019",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "POST",
+                    "path": "/orders",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 107,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 20,
+                    "bug_code": "BUG-020",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/coupons/apply",
+                    "detected": true,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 110,
+                    "detecting_test_case_ids": [
+                        561
+                    ]
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 21,
+                    "bug_code": "BUG-021",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/cart/items/{item_id}",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 113,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 3,
+                    "benchmark_bug_id": 22,
+                    "bug_code": "BUG-022",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/cart",
+                    "detected": false,
+                    "clean_test_run_id": 80,
+                    "bug_test_run_id": 116,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 11,
+                    "bug_code": "BUG-011",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 122,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 12,
+                    "bug_code": "BUG-012",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 125,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 13,
+                    "bug_code": "BUG-013",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 128,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 14,
+                    "bug_code": "BUG-014",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 131,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 15,
+                    "bug_code": "BUG-015",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/pay",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 134,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 16,
+                    "bug_code": "BUG-016",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/cancel",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 137,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 17,
+                    "bug_code": "BUG-017",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/admin/orders",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 140,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 18,
+                    "bug_code": "BUG-018",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/orders/{order_id}",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 143,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 19,
+                    "bug_code": "BUG-019",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "POST",
+                    "path": "/orders",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 146,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 20,
+                    "bug_code": "BUG-020",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/coupons/apply",
+                    "detected": true,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 149,
+                    "detecting_test_case_ids": [
+                        782
+                    ]
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 21,
+                    "bug_code": "BUG-021",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/cart/items/{item_id}",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 152,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 4,
+                    "benchmark_bug_id": 22,
+                    "bug_code": "BUG-022",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/cart",
+                    "detected": false,
+                    "clean_test_run_id": 119,
+                    "bug_test_run_id": 155,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 11,
+                    "bug_code": "BUG-011",
+                    "category": "BOUNDARY_ERROR",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 161,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 12,
+                    "bug_code": "BUG-012",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/cart/items",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 164,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 13,
+                    "bug_code": "BUG-013",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 167,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 14,
+                    "bug_code": "BUG-014",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "POST",
+                    "path": "/checkout",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 170,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 15,
+                    "bug_code": "BUG-015",
+                    "category": "SEQUENCE_ERROR",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/pay",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 173,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 16,
+                    "bug_code": "BUG-016",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/orders/{order_id}/cancel",
+                    "detected": true,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 176,
+                    "detecting_test_case_ids": [
+                        998
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 17,
+                    "bug_code": "BUG-017",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/admin/orders",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 179,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 18,
+                    "bug_code": "BUG-018",
+                    "category": "AUTH_ERROR",
+                    "method": "GET",
+                    "path": "/orders/{order_id}",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 182,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 19,
+                    "bug_code": "BUG-019",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "POST",
+                    "path": "/orders",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 185,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 20,
+                    "bug_code": "BUG-020",
+                    "category": "BUSINESS_RULE_VIOLATION",
+                    "method": "POST",
+                    "path": "/coupons/apply",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 188,
+                    "detecting_test_case_ids": []
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 21,
+                    "bug_code": "BUG-021",
+                    "category": "STATUS_CODE_WRONG",
+                    "method": "DELETE",
+                    "path": "/cart/items/{item_id}",
+                    "detected": true,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 191,
+                    "detecting_test_case_ids": [
+                        982
+                    ]
+                },
+                {
+                    "repetition": 5,
+                    "benchmark_bug_id": 22,
+                    "bug_code": "BUG-022",
+                    "category": "SCHEMA_MISMATCH",
+                    "method": "GET",
+                    "path": "/cart",
+                    "detected": false,
+                    "clean_test_run_id": 158,
+                    "bug_test_run_id": 194,
+                    "detecting_test_case_ids": []
+                }
+            ]
+        }
+    ]
+}

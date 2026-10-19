@@ -1,0 +1,16 @@
+strategy,metric,first,second,n,mean_first,mean_second,p,A12,p_holm,significant
+LLM,detected (McNemar exact),qwen2.5-coder:7b,qwen3-coder:30b,160,0.14375,0.2125,0.08014331245794892,,0.5610031872056425,False
+LLM,false_positive_rate (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.3696933333333334,0.2982066666666666,0.01025390625,0.78,0.09228515625,False
+LLM,status_code_coverage (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.5426533333333333,0.6792733333333333,0.0006451158437926242,0.2088888888888889,0.007741390125511491,True
+LLM,validity_rate (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.8890333333333332,1.0,0.0007247147221096363,0.03333333333333333,0.007971861943206,True
+LLM,generation_time_ms (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,91680.66666666667,310566.13333333336,6.103515625e-05,0.0,0.00091552734375,True
+HYBRID,detected (McNemar exact),qwen2.5-coder:7b,qwen3-coder:30b,160,0.5875,0.58125,1.0,,1.0,False
+HYBRID,false_positive_rate (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.12827333333333335,0.13491333333333333,0.803955078125,0.49777777777777776,1.0,False
+HYBRID,status_code_coverage (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.8754933333333331,0.9128066666666667,0.0018359746926569175,0.28,0.018359746926569175,True
+HYBRID,validity_rate (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.89126,0.9854,6.103515625e-05,0.0,0.00091552734375,True
+HYBRID,generation_time_ms (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,230234.6,574170.8,6.103515625e-05,0.0,0.00091552734375,True
+RULE,detected (McNemar exact),qwen2.5-coder:7b,qwen3-coder:30b,160,0.46875,0.46875,1.0,,1.0,False
+RULE,false_positive_rate (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.0307,0.0307,1.0,0.5,1.0,False
+RULE,status_code_coverage (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,0.8035666666666667,0.8035666666666667,1.0,0.5,1.0,False
+RULE,validity_rate (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,1.0,1.0,1.0,0.5,1.0,False
+RULE,generation_time_ms (Wilcoxon),qwen2.5-coder:7b,qwen3-coder:30b,15,712.4666666666667,757.4666666666667,0.041259765625,0.37333333333333335,0.330078125,False

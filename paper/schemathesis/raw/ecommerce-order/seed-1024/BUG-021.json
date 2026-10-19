@@ -1,0 +1,280 @@
+{
+  "schemathesis_version": "4.28.0",
+  "command": "st run /bench/ecommerce-order/openapi.yaml --url http://ecommerce-order-bug-021:8000 --seed 1024 --max-examples 100 --phases examples,coverage,fuzzing,stateful --checks all --workers 1 --no-color --report json --report-json-path /out/ecommerce-order/seed-1024/BUG-021.json --generation-database none -H Authorization: [Filtered]",
+  "seed": 1024,
+  "started_at": "2026-10-15T07:24:23.530623+00:00",
+  "running_time": 12.404063629999655,
+  "stop_reason": "completed",
+  "complete": true,
+  "exit_code": 1,
+  "operations": {
+    "total": 13,
+    "selected": 13,
+    "tested": 13,
+    "errored": 0,
+    "skipped": 0,
+    "skip_reasons": []
+  },
+  "phases": {
+    "examples": {
+      "status": "success",
+      "skip_reason": null
+    },
+    "coverage": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "fuzzing": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "stateful": {
+      "status": "failure",
+      "skip_reason": null
+    }
+  },
+  "test_cases": {
+    "generated": 2025,
+    "with_failures": 6,
+    "unique_failures": 7,
+    "without_checks": 607
+  },
+  "failures": [
+    {
+      "type": "ServerError",
+      "title": "Server error",
+      "severity": "critical",
+      "count": 1,
+      "operations": [
+        "DELETE /cart/items/{item_id}"
+      ]
+    },
+    {
+      "type": "RejectedPositiveData",
+      "title": "API rejected schema-compliant request",
+      "severity": "medium",
+      "count": 2,
+      "operations": [
+        "POST /checkout",
+        "Stateful tests"
+      ]
+    },
+    {
+      "type": "UndefinedStatusCode",
+      "title": "Undocumented HTTP status code",
+      "severity": "medium",
+      "count": 4,
+      "operations": [
+        "DELETE /cart/items/{item_id}",
+        "POST /cart/items",
+        "POST /coupons/apply",
+        "POST /orders"
+      ]
+    }
+  ],
+  "errors": [],
+  "baseline": null,
+  "filtered": 0,
+  "warnings": {
+    "missing_auth": [
+      "GET /admin/orders"
+    ],
+    "base_url_mismatch": [],
+    "missing_test_data": [
+      "POST /coupons/apply",
+      "POST /orders/{order_id}/pay"
+    ],
+    "validation_mismatch": [
+      "GET /admin/orders",
+      "POST /coupons/apply",
+      "POST /orders/{order_id}/cancel",
+      "POST /orders/{order_id}/pay"
+    ],
+    "missing_deserializer": [],
+    "unused_openapi_auth": [],
+    "unsupported_regex": [],
+    "method_not_allowed": [],
+    "constants_extraction": [],
+    "unmatched_filter": [],
+    "unresolvable_reference": [],
+    "low_valid_rate": []
+  },
+  "valid_rates": {
+    "POST /cart/items": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 3,
+        "unreachable": 0,
+        "rejected": 2
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "POST /checkout": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 6
+      }
+    },
+    "POST /coupons/apply": {
+      "examples": {
+        "accepted": 0,
+        "unreachable": 0,
+        "rejected": 1
+      },
+      "coverage": {
+        "accepted": 0,
+        "unreachable": 4,
+        "rejected": 1
+      },
+      "fuzzing": {
+        "accepted": 0,
+        "unreachable": 1,
+        "rejected": 0
+      }
+    },
+    "POST /orders": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 6,
+        "unreachable": 0,
+        "rejected": 2
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "POST /orders/{order_id}/cancel": {
+      "examples": {
+        "accepted": 0,
+        "unreachable": 0,
+        "rejected": 1
+      },
+      "coverage": {
+        "accepted": 0,
+        "unreachable": 2,
+        "rejected": 1
+      },
+      "fuzzing": {
+        "accepted": 0,
+        "unreachable": 7,
+        "rejected": 89
+      }
+    },
+    "POST /orders/{order_id}/pay": {
+      "examples": {
+        "accepted": 0,
+        "unreachable": 0,
+        "rejected": 1
+      },
+      "coverage": {
+        "accepted": 0,
+        "unreachable": 2,
+        "rejected": 1
+      },
+      "fuzzing": {
+        "accepted": 0,
+        "unreachable": 7,
+        "rejected": 89
+      }
+    },
+    "GET /orders/{order_id}": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 2,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 79,
+        "unreachable": 7,
+        "rejected": 0
+      }
+    },
+    "GET /products/{product_id}": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 99,
+        "unreachable": 1,
+        "rejected": 0
+      }
+    },
+    "GET /cart": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /health": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /products": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    }
+  },
+  "auth": {
+    "reauth_count": 0,
+    "reauth_broke": false
+  }
+}

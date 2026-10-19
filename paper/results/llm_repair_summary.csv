@@ -1,0 +1,5 @@
+model,strategy,generated,valid_final,valid_first,invalid,went_to_repair,repair_ok,repair_success_rate
+qwen2.5-coder:7b,HYBRID,471,343,272,128,199,71,0.35678391959798994
+qwen2.5-coder:7b,LLM,369,335,237,34,132,98,0.7424242424242424
+qwen3-coder:30b,HYBRID,466,448,397,18,69,51,0.7391304347826086
+qwen3-coder:30b,LLM,467,467,411,0,56,56,1.0

@@ -1,0 +1,91 @@
+{
+ "runs": [
+  {
+   "tag": "HYBRID-noBR-7b-run1",
+   "benchmark": "simple-store",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T094449Z",
+   "exit_code": 0,
+   "note": "run of 18 Oct (evening): LLM latency unusually high (19-42 s per call), same number of cases as the main run; used as the second repetition"
+  },
+  {
+   "tag": "HYBRID-noBR-7b-run1",
+   "benchmark": "ecommerce-order",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T102147Z",
+   "exit_code": 0,
+   "note": "run of 18 Oct (evening): LLM latency unusually high (19-42 s per call), same number of cases as the main run; used as the second repetition"
+  },
+  {
+   "tag": "HYBRID-noBR-7b-run1",
+   "benchmark": "appointment-booking",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T111933Z",
+   "exit_code": 0,
+   "note": "run of 18 Oct (evening): LLM latency unusually high (19-42 s per call), same number of cases as the main run; used as the second repetition"
+  },
+  {
+   "tag": "RULE-cap20",
+   "benchmark": "simple-store",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T200454Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "RULE-cap20",
+   "benchmark": "ecommerce-order",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T200726Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "RULE-cap20",
+   "benchmark": "appointment-booking",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T201015Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "HYBRID-noBR-7b",
+   "benchmark": "simple-store",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T201217Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "HYBRID-noBR-7b",
+   "benchmark": "ecommerce-order",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T203025Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "HYBRID-noBR-7b",
+   "benchmark": "appointment-booking",
+   "model": "qwen2.5-coder:7b",
+   "dir": "paper/runs/20261018T205014Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "HYBRID-noBR-30b",
+   "benchmark": "simple-store",
+   "model": "qwen3-coder:30b",
+   "dir": "paper/runs/20261018T211352Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "HYBRID-noBR-30b",
+   "benchmark": "ecommerce-order",
+   "model": "qwen3-coder:30b",
+   "dir": "paper/runs/20261018T215753Z",
+   "exit_code": 0
+  },
+  {
+   "tag": "HYBRID-noBR-30b",
+   "benchmark": "appointment-booking",
+   "model": "qwen3-coder:30b",
+   "dir": "paper/runs/20261018T225242Z",
+   "exit_code": 0
+  }
+ ]
+}

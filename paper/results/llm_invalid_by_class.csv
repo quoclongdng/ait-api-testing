@@ -1,0 +1,14 @@
+model,strategy,primary,n
+qwen2.5-coder:7b,HYBRID,DSL_SCHEMA,51
+qwen2.5-coder:7b,HYBRID,ENDPOINT,42
+qwen2.5-coder:7b,HYBRID,FIELD,6
+qwen2.5-coder:7b,HYBRID,STATUS,3
+qwen2.5-coder:7b,HYBRID,VARIABLE,26
+qwen2.5-coder:7b,LLM,DSL_SCHEMA,19
+qwen2.5-coder:7b,LLM,ENDPOINT,7
+qwen2.5-coder:7b,LLM,FIELD,5
+qwen2.5-coder:7b,LLM,STATUS,2
+qwen2.5-coder:7b,LLM,VARIABLE,1
+qwen3-coder:30b,HYBRID,DSL_SCHEMA,6
+qwen3-coder:30b,HYBRID,ENDPOINT,11
+qwen3-coder:30b,HYBRID,VARIABLE,1

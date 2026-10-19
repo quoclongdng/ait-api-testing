@@ -1,0 +1,242 @@
+{
+  "schemathesis_version": "4.28.0",
+  "command": "st run /bench/appointment-booking/openapi.yaml --url http://appointment-booking-bug-027:8000 --seed 1024 --max-examples 100 --phases examples,coverage,fuzzing,stateful --checks all --workers 1 --no-color --report json --report-json-path /out/appointment-booking/seed-1024/BUG-027.json --generation-database none -H Authorization: [Filtered]",
+  "seed": 1024,
+  "started_at": "2026-10-18T19:22:10.327741+00:00",
+  "running_time": 30.951294687998598,
+  "stop_reason": "completed",
+  "complete": true,
+  "exit_code": 1,
+  "operations": {
+    "total": 10,
+    "selected": 10,
+    "tested": 10,
+    "errored": 0,
+    "skipped": 0,
+    "skip_reasons": []
+  },
+  "phases": {
+    "examples": {
+      "status": "success",
+      "skip_reason": null
+    },
+    "coverage": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "fuzzing": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "stateful": {
+      "status": "failure",
+      "skip_reason": null
+    }
+  },
+  "test_cases": {
+    "generated": 4948,
+    "with_failures": 7,
+    "unique_failures": 7,
+    "without_checks": 1414
+  },
+  "failures": [
+    {
+      "type": "RejectedPositiveData",
+      "title": "API rejected schema-compliant request",
+      "severity": "medium",
+      "count": 3,
+      "operations": [
+        "GET /doctors/{doctor_id}/slots",
+        "PATCH /appointments/{appointment_id}",
+        "POST /appointments"
+      ]
+    },
+    {
+      "type": "AllowHeaderMismatch",
+      "title": "Invalid Allow header",
+      "severity": "medium",
+      "count": 2,
+      "operations": [
+        "OPTIONS /appointments",
+        "OPTIONS /appointments/{appointment_id}"
+      ]
+    },
+    {
+      "type": "UndefinedStatusCode",
+      "title": "Undocumented HTTP status code",
+      "severity": "medium",
+      "count": 2,
+      "operations": [
+        "GET /doctors",
+        "Stateful tests"
+      ]
+    }
+  ],
+  "errors": [],
+  "baseline": null,
+  "filtered": 0,
+  "warnings": {
+    "missing_auth": [],
+    "base_url_mismatch": [],
+    "missing_test_data": [
+      "DELETE /appointments/{appointment_id}"
+    ],
+    "validation_mismatch": [
+      "DELETE /appointments/{appointment_id}"
+    ],
+    "missing_deserializer": [],
+    "unused_openapi_auth": [],
+    "unsupported_regex": [],
+    "method_not_allowed": [],
+    "constants_extraction": [],
+    "unmatched_filter": [],
+    "unresolvable_reference": [],
+    "low_valid_rate": []
+  },
+  "valid_rates": {
+    "POST /appointments": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 4
+      }
+    },
+    "GET /departments/{department_id}": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 99,
+        "unreachable": 1,
+        "rejected": 0
+      }
+    },
+    "PATCH /appointments/{appointment_id}": {
+      "examples": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 0,
+        "unreachable": 0,
+        "rejected": 1
+      }
+    },
+    "GET /doctors": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 17,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "DELETE /appointments/{appointment_id}": {
+      "examples": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 0,
+        "unreachable": 3,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 3,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /doctors/{doctor_id}": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 2,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 92,
+        "unreachable": 6,
+        "rejected": 0
+      }
+    },
+    "GET /doctors/{doctor_id}/slots": {
+      "examples": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 2,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 0,
+        "unreachable": 0,
+        "rejected": 1
+      }
+    },
+    "GET /appointments": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /departments": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /health": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    }
+  },
+  "auth": {
+    "reauth_count": 0,
+    "reauth_broke": false
+  }
+}

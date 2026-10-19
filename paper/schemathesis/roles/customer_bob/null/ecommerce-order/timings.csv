@@ -1,0 +1,6 @@
+seed,variant,host,exit_code,seconds
+42,clean,ecommerce-order,1,16.38
+1024,clean,ecommerce-order,1,13.88
+2026,clean,ecommerce-order,1,13.27
+2027,clean,ecommerce-order,1,13.2
+2028,clean,ecommerce-order,1,15.55

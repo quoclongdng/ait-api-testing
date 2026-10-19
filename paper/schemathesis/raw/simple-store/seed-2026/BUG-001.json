@@ -1,0 +1,221 @@
+{
+  "schemathesis_version": "4.28.0",
+  "command": "st run /bench/simple-store/openapi.yaml --url http://simple-store-bug-001:8000 --seed 2026 --max-examples 100 --phases examples,coverage,fuzzing,stateful --checks all --workers 1 --no-color --report json --report-json-path /out/simple-store/seed-2026/BUG-001.json --generation-database none",
+  "seed": 2026,
+  "started_at": "2026-10-15T07:04:40.470944+00:00",
+  "running_time": 28.897054597000533,
+  "stop_reason": "completed",
+  "complete": true,
+  "exit_code": 1,
+  "operations": {
+    "total": 9,
+    "selected": 9,
+    "tested": 9,
+    "errored": 0,
+    "skipped": 0,
+    "skip_reasons": []
+  },
+  "phases": {
+    "examples": {
+      "status": "success",
+      "skip_reason": null
+    },
+    "coverage": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "fuzzing": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "stateful": {
+      "status": "failure",
+      "skip_reason": null
+    }
+  },
+  "test_cases": {
+    "generated": 1562,
+    "with_failures": 7,
+    "unique_failures": 7,
+    "without_checks": 0
+  },
+  "failures": [
+    {
+      "type": "AcceptedNegativeData",
+      "title": "API accepted schema-violating request",
+      "severity": "medium",
+      "count": 1,
+      "operations": [
+        "GET /categories"
+      ]
+    },
+    {
+      "type": "AllowHeaderMismatch",
+      "title": "Invalid Allow header",
+      "severity": "medium",
+      "count": 3,
+      "operations": [
+        "OPTIONS /categories",
+        "OPTIONS /products",
+        "OPTIONS /products/{id}"
+      ]
+    },
+    {
+      "type": "UndefinedStatusCode",
+      "title": "Undocumented HTTP status code",
+      "severity": "medium",
+      "count": 3,
+      "operations": [
+        "POST /categories",
+        "POST /products",
+        "Stateful tests"
+      ]
+    }
+  ],
+  "errors": [],
+  "baseline": null,
+  "filtered": 0,
+  "warnings": {
+    "missing_auth": [],
+    "base_url_mismatch": [],
+    "missing_test_data": [],
+    "validation_mismatch": [],
+    "missing_deserializer": [],
+    "unused_openapi_auth": [],
+    "unsupported_regex": [],
+    "method_not_allowed": [],
+    "constants_extraction": [],
+    "unmatched_filter": [],
+    "unresolvable_reference": [],
+    "low_valid_rate": []
+  },
+  "valid_rates": {
+    "POST /categories": {
+      "examples": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 0,
+        "unreachable": 0,
+        "rejected": 1
+      }
+    },
+    "POST /products": {
+      "examples": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /categories/{id}": {
+      "examples": {
+        "accepted": 3,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 2,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 94,
+        "unreachable": 4,
+        "rejected": 0
+      }
+    },
+    "GET /products": {
+      "examples": {
+        "accepted": 3,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 13,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 99,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "PUT /products/{id}": {
+      "examples": {
+        "accepted": 4,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 55,
+        "unreachable": 31,
+        "rejected": 0
+      }
+    },
+    "GET /products/{id}": {
+      "examples": {
+        "accepted": 3,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 1,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 45,
+        "unreachable": 55,
+        "rejected": 0
+      }
+    },
+    "DELETE /products/{id}": {
+      "examples": {
+        "accepted": 3,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 1,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 1,
+        "rejected": 0
+      }
+    },
+    "GET /health": {
+      "coverage": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    },
+    "GET /categories": {
+      "fuzzing": {
+        "accepted": 42,
+        "unreachable": 0,
+        "rejected": 0
+      }
+    }
+  },
+  "auth": {
+    "reauth_count": 0,
+    "reauth_broke": false
+  }
+}

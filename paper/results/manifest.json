@@ -1,0 +1,41 @@
+{
+ "runs": [
+  {
+   "model": "qwen2.5-coder:7b",
+   "benchmark": "simple-store",
+   "dir": "paper/runs/20261016T033542Z",
+   "exit_code": 0
+  },
+  {
+   "model": "qwen2.5-coder:7b",
+   "benchmark": "ecommerce-order",
+   "dir": "paper/runs/20261016T040252Z",
+   "exit_code": 0
+  },
+  {
+   "model": "qwen2.5-coder:7b",
+   "benchmark": "appointment-booking",
+   "dir": "paper/runs/20261016T043514Z",
+   "exit_code": 0
+  },
+  {
+   "model": "qwen3-coder:30b",
+   "benchmark": "simple-store",
+   "dir": "paper/runs/20261016T050751Z",
+   "exit_code": 0
+  },
+  {
+   "model": "qwen3-coder:30b",
+   "benchmark": "ecommerce-order",
+   "dir": "paper/runs/20261016T060720Z",
+   "exit_code": 0
+  },
+  {
+   "model": "qwen3-coder:30b",
+   "benchmark": "appointment-booking",
+   "dir": "paper/runs/20261016T145102Z",
+   "exit_code": 0
+  }
+ ],
+ "schemathesis": "schemathesis_detections.csv"
+}

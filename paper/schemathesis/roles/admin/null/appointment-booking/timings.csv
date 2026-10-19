@@ -1,0 +1,6 @@
+seed,variant,host,exit_code,seconds
+42,clean,appointment-booking,1,13.44
+1024,clean,appointment-booking,1,29.76
+2026,clean,appointment-booking,1,17.59
+2027,clean,appointment-booking,1,17.69
+2028,clean,appointment-booking,1,28.33
