@@ -1,0 +1,28 @@
+{
+  "dsl_version": "1.0",
+  "title": "Create item with string price instead of number returns 400 or 422",
+  "description": "Verifies type mismatch error when providing invalid datatype for price",
+  "endpoint": { "method": "POST", "path": "/items" },
+  "technique": "TYPE_MISMATCH",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "post item with string price",
+      "request": {
+        "method": "POST",
+        "path": "/items",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Notebook",
+          "price": "not_a_number"
+        }
+      },
+      "assertions": [
+        { "type": "status_in", "values": [400, 422] },
+        { "type": "json_path", "path": "$.error", "op": "exists" }
+      ]
+    }
+  ]
+}

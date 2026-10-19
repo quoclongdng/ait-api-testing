@@ -1,0 +1,13 @@
+extends:
+  - recommended
+
+rules:
+  # AIT is currently an internal academic project without a published license.
+  info-license: off
+  # The committed servers intentionally describe local/Docker development.
+  no-server-example.com: off
+  # Health endpoints do not have a meaningful 4xx response.
+  operation-4xx-response: off
+  # Redocly reports nested conditional `required` fields in the shared
+  # JSON Schema as undefined even though they are declared by the parent.
+  no-required-schema-properties-undefined: off

@@ -1,0 +1,38 @@
+{
+  "dsl_version": "1.0",
+  "title": "Access protected admin endpoint with and without authentication",
+  "description": "Checks 401 when unauthenticated and 200 when bearer token is supplied",
+  "endpoint": { "method": "GET", "path": "/admin/users" },
+  "technique": "AUTH",
+  "source": "LLM",
+  "tags": ["auth", "security", "admin"],
+  "variables": {
+    "adminToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummyToken"
+  },
+  "steps": [
+    {
+      "name": "unauthenticated request is rejected",
+      "request": {
+        "method": "GET",
+        "path": "/admin/users"
+      },
+      "assertions": [
+        { "type": "status", "equals": 401 },
+        { "type": "json_path", "path": "$.error.code", "op": "eq", "value": "UNAUTHENTICATED" }
+      ]
+    },
+    {
+      "name": "authenticated request succeeds",
+      "request": {
+        "method": "GET",
+        "path": "/admin/users",
+        "headers": {
+          "Authorization": "Bearer {{adminToken}}"
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 200 }
+      ]
+    }
+  ]
+}

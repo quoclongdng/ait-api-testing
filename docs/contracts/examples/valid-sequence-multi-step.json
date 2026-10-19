@@ -1,0 +1,78 @@
+{
+  "dsl_version": "1.0",
+  "title": "Complete lifecycle order creation payment and deletion",
+  "description": "Multi-step flow checking state transitions across order endpoints",
+  "endpoint": { "method": "POST", "path": "/orders" },
+  "technique": "SEQUENCE",
+  "source": "HYBRID",
+  "tags": ["sequence", "orders", "lifecycle"],
+  "variables": {
+    "itemCount": 2,
+    "unitPrice": 50
+  },
+  "steps": [
+    {
+      "name": "create draft order",
+      "request": {
+        "method": "POST",
+        "path": "/orders",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "quantity": "{{itemCount}}",
+          "price": "{{unitPrice}}"
+        }
+      },
+      "extract": [
+        { "var": "orderId", "from": "body", "path": "$.id" },
+        { "var": "orderStatus", "from": "body", "path": "$.status" }
+      ],
+      "assertions": [
+        { "type": "status", "equals": 201 },
+        { "type": "json_path", "path": "$.status", "op": "eq", "value": "DRAFT" }
+      ]
+    },
+    {
+      "name": "pay for order",
+      "request": {
+        "method": "PATCH",
+        "path": "/orders/{id}/pay",
+        "path_params": {
+          "id": "{{orderId}}"
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 200 },
+        { "type": "json_path", "path": "$.status", "op": "eq", "value": "PAID" }
+      ]
+    },
+    {
+      "name": "read order details",
+      "request": {
+        "method": "GET",
+        "path": "/orders/{id}",
+        "path_params": {
+          "id": "{{orderId}}"
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 200 },
+        { "type": "json_path", "path": "$.id", "op": "eq", "value": "{{orderId}}" }
+      ]
+    },
+    {
+      "name": "archive order",
+      "request": {
+        "method": "DELETE",
+        "path": "/orders/{id}",
+        "path_params": {
+          "id": "{{orderId}}"
+        }
+      },
+      "assertions": [
+        { "type": "status_in", "values": [200, 204] }
+      ]
+    }
+  ]
+}

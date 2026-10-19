@@ -1,0 +1,22 @@
+{
+    "Showing": "Hiển thị",
+    "to": "đến",
+    "of": "trong tổng số",
+    "results": "kết quả",
+    "Pagination Navigation": "Điều hướng phân trang",
+    "Go to page :page": "Đến trang :page",
+    "The given data was invalid.": "Dữ liệu gửi lên không hợp lệ.",
+    "Unauthenticated.": "Bạn chưa đăng nhập.",
+    "This action is unauthorized.": "Bạn không có quyền thực hiện thao tác này.",
+    "Resource not found.": "Không tìm thấy tài nguyên.",
+    "Method not allowed.": "Phương thức không được hỗ trợ.",
+    "Too many requests.": "Bạn gửi quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.",
+    "Internal server error.": "Lỗi máy chủ nội bộ.",
+    "Session expired. Please reload the page and sign in again.": "Phiên làm việc đã hết hạn. Vui lòng tải lại trang và đăng nhập lại.",
+    "Conflict.": "Dữ liệu bị trùng hoặc xung đột.",
+    "The request payload is too large.": "Dữ liệu gửi lên vượt quá kích thước cho phép.",
+    "(and :count more error)": "(và :count lỗi khác)",
+    "(and :count more errors)": "(và :count lỗi khác)",
+    "CSRF token mismatch.": "Phiên làm việc đã hết hạn. Vui lòng tải lại trang và đăng nhập lại.",
+    "Logged out successfully.": "Đã đăng xuất."
+}

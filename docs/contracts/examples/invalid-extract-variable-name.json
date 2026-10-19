@@ -1,0 +1,23 @@
+{
+  "dsl_version": "1.0",
+  "title": "Invalid test with hyphenated variable name in extract",
+  "endpoint": { "method": "POST", "path": "/items" },
+  "technique": "HAPPY_PATH",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "create item",
+      "request": {
+        "method": "POST",
+        "path": "/items",
+        "body": { "name": "Item" }
+      },
+      "extract": [
+        { "var": "item-id-with-dash", "from": "body", "path": "$.id" }
+      ],
+      "assertions": [
+        { "type": "status", "equals": 201 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Secrets & local env (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+auth.json
+
+# Build / dependencies
+node_modules/
+vendor/
+# Laravel view overrides (e.g. pagination) live in resources/views/vendor and must be tracked
+!web/resources/views/vendor/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+coverage/
+
+# Benchmark raw outputs (store in releases, not git)
+benchmark/results/raw/
+# make experiment runs (benchmark/results/<UTC timestamp>/): local by default. The runs used in
+# the paper are committed under paper/runs/.
+benchmark/results/2*/
+# Logs and new manifests of paper/scripts/*.sh
+paper/logs/
+paper/results/*.new.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+

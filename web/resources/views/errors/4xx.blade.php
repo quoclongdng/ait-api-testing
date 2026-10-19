@@ -1,0 +1,1 @@
+@include('errors.page', ['status' => isset($exception) && method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : '4xx', 'title' => 'Yêu cầu không hợp lệ', 'message' => 'Không xử lý được yêu cầu này. Vui lòng kiểm tra lại và thử lại.'])

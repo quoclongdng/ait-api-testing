@@ -1,0 +1,28 @@
+{
+  "dsl_version": "1.0",
+  "title": "Create item without required name field returns 422",
+  "description": "Verifies that omitting the mandatory 'name' attribute results in validation error",
+  "endpoint": { "method": "POST", "path": "/items" },
+  "technique": "MISSING_REQUIRED",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "post item with missing name",
+      "request": {
+        "method": "POST",
+        "path": "/items",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "price": 25.5
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 422 },
+        { "type": "json_path", "path": "$.error.code", "op": "eq", "value": "VALIDATION_FAILED" },
+        { "type": "json_path", "path": "$.error.details.name", "op": "exists" }
+      ]
+    }
+  ]
+}

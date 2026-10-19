@@ -1,0 +1,51 @@
+{
+  "dsl_version": "1.0",
+  "title": "Enforce uniqueness constraint on item SKU",
+  "description": "Verifies that creating an item with an existing SKU triggers 409 CONFLICT",
+  "endpoint": { "method": "POST", "path": "/items" },
+  "technique": "BUSINESS_RULE",
+  "source": "HYBRID",
+  "tags": ["business_rule", "uniqueness", "conflict"],
+  "variables": {
+    "testSku": "SKU-DUPLICATE-001"
+  },
+  "steps": [
+    {
+      "name": "create first item with unique sku",
+      "request": {
+        "method": "POST",
+        "path": "/items",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Original Product",
+          "sku": "{{testSku}}",
+          "price": 100
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 201 }
+      ]
+    },
+    {
+      "name": "attempt duplicate sku creation",
+      "request": {
+        "method": "POST",
+        "path": "/items",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "Duplicate Product",
+          "sku": "{{testSku}}",
+          "price": 120
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 409 },
+        { "type": "json_path", "path": "$.error.code", "op": "eq", "value": "CONFLICT" }
+      ]
+    }
+  ]
+}

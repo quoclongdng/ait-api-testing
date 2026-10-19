@@ -1,0 +1,35 @@
+{
+  "dsl_version": "1.0",
+  "title": "Query items with boundary limit and price range",
+  "description": "Tests pagination limit=100 and price filter at minimum boundary",
+  "endpoint": { "method": "GET", "path": "/items" },
+  "technique": "BOUNDARY",
+  "source": "RULE",
+  "tags": ["items", "boundary", "pagination"],
+  "variables": {
+    "maxLimit": 100,
+    "minPrice": 0.01
+  },
+  "steps": [
+    {
+      "name": "get items at boundary limits",
+      "request": {
+        "method": "GET",
+        "path": "/items",
+        "query": {
+          "limit": "{{maxLimit}}",
+          "min_price": "{{minPrice}}"
+        },
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "assertions": [
+        { "type": "status", "equals": 200 },
+        { "type": "header", "name": "Content-Type", "op": "contains", "value": "application/json" },
+        { "type": "response_time", "lte_ms": 1000 },
+        { "type": "json_path", "path": "$.data", "op": "type", "value": "array" }
+      ]
+    }
+  ]
+}

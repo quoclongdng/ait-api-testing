@@ -1,0 +1,22 @@
+{
+  "dsl_version": "1.0",
+  "title": "Invalid test with extract from body missing path",
+  "endpoint": { "method": "GET", "path": "/items" },
+  "technique": "HAPPY_PATH",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "step 1",
+      "request": { "method": "GET", "path": "/items" },
+      "extract": [
+        {
+          "var": "id",
+          "from": "body"
+        }
+      ],
+      "assertions": [
+        { "type": "status", "equals": 200 }
+      ]
+    }
+  ]
+}

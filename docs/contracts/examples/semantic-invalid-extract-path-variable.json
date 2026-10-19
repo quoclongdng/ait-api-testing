@@ -1,0 +1,16 @@
+{
+  "dsl_version": "1.0",
+  "title": "Extract path uses a variable that was never defined",
+  "description": "Passes the JSON Schema but the extract path uses {{field}} before any step extracts it, so the case is rejected by the semantic check of both validators (D04).",
+  "endpoint": { "method": "GET", "path": "/products" },
+  "technique": "HAPPY_PATH",
+  "source": "LLM",
+  "steps": [
+    {
+      "name": "list products",
+      "request": { "method": "GET", "path": "/products" },
+      "extract": [{ "var": "firstValue", "from": "body", "path": "$[0].{{field}}" }],
+      "assertions": [{ "type": "status", "equals": 200 }]
+    }
+  ]
+}

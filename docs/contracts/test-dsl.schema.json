@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ait.local/contracts/test-dsl/1.0",
+  "title": "AIT Test DSL v1.0",
+  "description": "One executable API test case. Produced by the rule generator, the LLM (ai-service) or a human. Status: DRAFT until design freeze G0 (docs/DESIGN.md D05).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dsl_version", "title", "endpoint", "technique", "source", "steps"],
+  "properties": {
+    "dsl_version": { "const": "1.0" },
+    "title": { "type": "string", "minLength": 3, "maxLength": 255 },
+    "description": { "type": "string", "maxLength": 2000 },
+    "endpoint": { "$ref": "#/$defs/endpointRef" },
+    "technique": {
+      "enum": ["HAPPY_PATH", "BOUNDARY", "EQUIVALENCE", "INVALID_INPUT", "MISSING_REQUIRED", "TYPE_MISMATCH", "AUTH", "BUSINESS_RULE", "SEQUENCE"]
+    },
+    "source": { "enum": ["RULE", "LLM", "HYBRID", "MANUAL"] },
+    "tags": { "type": "array", "items": { "type": "string", "maxLength": 50 }, "uniqueItems": true },
+    "variables": {
+      "description": "Initial variables, referenced as {{name}} inside requests.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "steps": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "$ref": "#/$defs/step" } }
+  },
+  "$defs": {
+    "httpMethod": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] },
+    "endpointRef": {
+      "description": "Must match an endpoint of the parsed spec (semantic validation).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "path"],
+      "properties": {
+        "method": { "$ref": "#/$defs/httpMethod" },
+        "path": { "type": "string", "pattern": "^/" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "request", "assertions"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "request": { "$ref": "#/$defs/request" },
+        "extract": { "type": "array", "items": { "$ref": "#/$defs/extract" } },
+        "assertions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/assertion" } }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "path"],
+      "properties": {
+        "method": { "$ref": "#/$defs/httpMethod" },
+        "path": { "type": "string", "pattern": "^/" },
+        "path_params": { "type": "object", "additionalProperties": { "type": ["string", "number", "integer", "boolean"] } },
+        "query": { "type": "object", "additionalProperties": true },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "body": {}
+      }
+    },
+    "extract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["var", "from"],
+      "properties": {
+        "var": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+        "from": { "enum": ["body", "header", "status"] },
+        "path": { "type": "string", "description": "JSONPath for body, header name for header." }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "from": { "enum": ["body", "header"] } } },
+          "then": { "required": ["path"] }
+        }
+      ]
+    },
+    "assertion": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "equals"],
+          "properties": { "type": { "const": "status" }, "equals": { "type": "integer", "minimum": 100, "maximum": 599 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "values"],
+          "properties": { "type": { "const": "status_in" }, "values": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 100, "maximum": 599 } } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type"],
+          "properties": {
+            "type": { "const": "json_schema" },
+            "schema_ref": { "type": "string", "description": "e.g. #/components/schemas/Item, resolved against the spec." },
+            "schema": { "type": "object" }
+          },
+          "oneOf": [{ "required": ["schema_ref"] }, { "required": ["schema"] }]
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "path", "op"],
+          "properties": {
+            "type": { "const": "json_path" },
+            "path": { "type": "string", "pattern": "^\\$" },
+            "op": { "enum": ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "exists", "not_exists", "matches", "type"] },
+            "value": { "description": "Với op=matches: value là pattern trần (cú pháp chung ECMA-262/Python re, như JSON Schema pattern), ví dụ \"^[0-9]+$\"; không có delimiter kiểu PHP (/.../); khớp không neo (search), hỗ trợ Unicode." }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "op": { "enum": ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "matches", "type"] } } },
+              "then": { "required": ["value"] }
+            }
+          ]
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "name", "op"],
+          "properties": {
+            "type": { "const": "header" },
+            "name": { "type": "string" },
+            "op": { "enum": ["eq", "contains", "exists", "not_exists", "matches"] },
+            "value": { "type": "string", "description": "Với op=matches: value là pattern trần (cú pháp chung ECMA-262/Python re, như JSON Schema pattern), ví dụ \"^[0-9]+$\"; không có delimiter kiểu PHP (/.../); khớp không neo (search), hỗ trợ Unicode." }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "op": { "enum": ["eq", "contains", "matches"] } } },
+              "then": { "required": ["value"] }
+            }
+          ]
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "lte_ms"],
+          "properties": { "type": { "const": "response_time" }, "lte_ms": { "type": "integer", "minimum": 1 } }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  openapi:
+    name: openapi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Lint OpenAPI contracts
+        run: npx --yes @redocly/cli@2.57.0 lint docs/contracts/web-api.openapi.yaml docs/contracts/ai-service.openapi.yaml benchmark/simple-store/openapi.yaml benchmark/ecommerce-order/openapi.yaml benchmark/appointment-booking/openapi.yaml
+
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ait_test
+          POSTGRES_USER: ait
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ait -d ait_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: ait
+      DB_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_pgsql, intl, zip, bcmath
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: web/vendor
+          key: composer-${{ hashFiles('web/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer check-platform-reqs
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Lint (Pint)
+        run: ./vendor/bin/pint --test
+      - name: Static analysis (Larastan)
+        run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+      - name: Tests (PHPUnit)
+        run: php artisan test
+
+  web-docker:
+    name: web (Docker numeric smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Web runtime image
+        run: docker build --file docker/web/Dockerfile --tag ait-web:test .
+      - name: Check PHP upload limits allow 5 MB spec files
+        run: |
+          docker run --rm --entrypoint php ait-web:test -r '
+            $toBytes = static fn (string $v): int => (int) $v * ["K" => 1024, "M" => 1048576, "G" => 1073741824][strtoupper(substr($v, -1))];
+            $upload = $toBytes(ini_get("upload_max_filesize"));
+            $post = $toBytes(ini_get("post_max_size"));
+            echo "upload_max_filesize=", ini_get("upload_max_filesize"), " post_max_size=", ini_get("post_max_size"), PHP_EOL;
+            exit($upload > 5 * 1048576 && $post > $upload ? 0 : 1);
+          '
+      - name: Check runtime dependencies and numeric generation in Web image
+        run: |
+          docker run --rm --entrypoint sh -v "$PWD:/workspace:ro" ait-web:test -c '
+            set -eu
+            cp -R /workspace/web/. /var/www/html/
+            cp -R /workspace/docs /var/www/docs
+            composer install --no-interaction --prefer-dist --no-progress --no-scripts
+            composer check-platform-reqs
+            php vendor/bin/phpunit tests/Unit/Services/RuleGeneratorOverflowTest.php
+          '
+
+  ai-service:
+    name: ai-service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP for cross-runtime validation
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring
+          coverage: none
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Require the live PHP fingerprint cross-test (skipped in the Docker image)
+        run: echo "REQUIRE_PHP_CROSS_TEST=1" >> "$GITHUB_ENV"
+      - name: Fail (never skip) tests whose repo-root files are missing, as make test-ai does
+        run: echo "AIT_REQUIRE_REPO_FILES=1" >> "$GITHUB_ENV"
+      - name: Lint (Ruff)
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Static analysis (mypy)
+        run: uv run mypy app tests
+      - name: Tests (pytest)
+        run: uv run pytest
+
+  benchmark:
+    name: benchmark (${{ matrix.benchmark }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        benchmark: [simple-store, ecommerce-order, appointment-booking, runner, tools]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv venv && uv pip install -r requirements.txt
+        working-directory: benchmark/${{ matrix.benchmark }}
+      - name: Lint (Ruff)
+        run: uv run ruff check . && uv run ruff format --check .
+        working-directory: benchmark/${{ matrix.benchmark }}
+      - name: Tests (pytest)
+        run: uv run pytest
+        working-directory: benchmark/${{ matrix.benchmark }}
+
+  benchmark-docker:
+    name: benchmark (Docker build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build simple store benchmark image
+        run: docker build --file docker/benchmark/Dockerfile --tag ait-benchmark-simple-store:test .
+      - name: Validate experiment compose stack (base + single-bug sandboxes + experiment overrides)
+        run: POSTGRES_PASSWORD=ci-only docker compose -f docker/docker-compose.yml -f docker/docker-compose.experiment.yml -f docker/docker-compose.experiment-llm.yml config --quiet
+      - name: Build e-commerce order benchmark image
+        run: docker build --file docker/benchmark-order/Dockerfile --tag ait-benchmark-order:test .
+      - name: Build appointment booking benchmark image
+        run: docker build --file docker/benchmark-booking/Dockerfile --tag ait-benchmark-booking:test .
+      - name: Run benchmark tests inside the images (same mounts as compose, i.e. make test-bench)
+        run: |
+          set -eux
+          docker run --rm -v "$PWD/benchmark/simple-store:/app" ait-benchmark-simple-store:test pytest -p no:cacheprovider
+          docker run --rm -v "$PWD/benchmark/ecommerce-order:/app" -v "$PWD/docs:/docs:ro" ait-benchmark-order:test pytest -p no:cacheprovider
+          docker run --rm -v "$PWD/benchmark/appointment-booking:/app" -v "$PWD/docs:/docs:ro" ait-benchmark-booking:test pytest -p no:cacheprovider
+
+  secrets:
+    name: secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 git /repo --redact -v

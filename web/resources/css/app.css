@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+/* Pagination uses the app's own view (resources/views/vendor/pagination), styled for the dark UI.
+   Only the Blade sources are scanned, never the compiled views in storage/framework/views: every newly
+   compiled view would make the dev `vite build --watch` rebuild (and empty public/build) mid page load. */
+@source '../**/*.blade.php';
+@source '../**/*.js';
+/* Shell accent classes (teal: TESTER, indigo: ADMIN) built in PHP for shared screens (S14-06). */
+@source '../../app/Support/AccentClasses.php';
+
+@theme {
+    /* Inter is the font loaded by the layouts (fonts.bunny.net, includes the Vietnamese subset). */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Intermediate slate shades used by M02/M06/M07/M08 cards (Tailwind only ships 50–950 in steps of 100). */
+    --color-slate-750: oklch(32.5% 0.043 258.7);
+    --color-slate-850: oklch(24.4% 0.042 262.9);
+}

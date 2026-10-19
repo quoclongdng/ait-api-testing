@@ -1,0 +1,5 @@
+{
+  "dsl_version": "1.0",
+  "title": "Invalid test missing required fields",
+  "endpoint": { "method": "GET", "path": "/items" }
+}

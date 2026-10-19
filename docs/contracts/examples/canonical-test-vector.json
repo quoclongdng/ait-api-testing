@@ -1,0 +1,40 @@
+{
+  "description": "Shared RFC 8785 canonicalization test vector for PHP (S3-02) and Python (S6-02)",
+  "dsl": {
+    "title": "Sample test case with RFC 8785 features",
+    "description": "Should be ignored in fingerprint",
+    "tags": ["tagA", "tagB"],
+    "dsl_version": "1.0",
+    "source": "RULE",
+    "technique": "HAPPY_PATH",
+    "endpoint": {
+      "path": "/items",
+      "method": "POST"
+    },
+    "steps": [
+      {
+        "name": "create item",
+        "request": {
+          "method": "POST",
+          "path": "/items",
+          "body": {
+            "count": 10,
+            "empty_arr": [],
+            "empty_obj": {},
+            "large_num": 1e30,
+            "name": "Widget",
+            "zero": 0.0
+          }
+        },
+        "assertions": [
+          {
+            "equals": 201,
+            "type": "status"
+          }
+        ]
+      }
+    ]
+  },
+  "expected_canonical_json": "{\"dsl_version\":\"1.0\",\"endpoint\":{\"method\":\"POST\",\"path\":\"/items\"},\"source\":\"RULE\",\"steps\":[{\"assertions\":[{\"equals\":201,\"type\":\"status\"}],\"name\":\"create item\",\"request\":{\"body\":{\"count\":10,\"empty_arr\":[],\"empty_obj\":{},\"large_num\":1e+30,\"name\":\"Widget\",\"zero\":0},\"method\":\"POST\",\"path\":\"/items\"}}],\"technique\":\"HAPPY_PATH\"}",
+  "expected_sha256": "1e4714094aae96c5dd013859be2cbdc8e2cb34370b6ac46024e1327fa74a2c2f"
+}

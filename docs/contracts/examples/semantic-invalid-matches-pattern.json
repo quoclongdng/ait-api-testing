@@ -1,0 +1,18 @@
+{
+  "dsl_version": "1.0",
+  "title": "Product code matches an uncompilable pattern",
+  "description": "Passes the JSON Schema but the matches pattern does not compile, so the case is rejected by the semantic check of both validators (D04).",
+  "endpoint": { "method": "GET", "path": "/products" },
+  "technique": "HAPPY_PATH",
+  "source": "LLM",
+  "steps": [
+    {
+      "name": "list products",
+      "request": { "method": "GET", "path": "/products" },
+      "assertions": [
+        { "type": "status", "equals": 200 },
+        { "type": "json_path", "path": "$[0].code", "op": "matches", "value": "^[A-Z]+-(\\d{3}$" }
+      ]
+    }
+  ]
+}

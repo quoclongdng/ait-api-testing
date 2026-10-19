@@ -1,0 +1,316 @@
+openapi: 3.1.0
+info:
+  title: AIT ai-service
+  version: 1.0.0
+  description: |
+    Hợp đồng nội bộ giữa Laravel queue worker và FastAPI ai-service. Hợp đồng
+    ở trạng thái DRAFT cho đến Gate G0. ai-service sinh, validate, repair và
+    dedup test case nhưng không bao giờ quyết định PASS/FAIL (D03).
+servers:
+  - url: http://ai-service:8001
+    description: Docker network nội bộ
+tags:
+  - { name: System, description: Trạng thái ai-service }
+  - { name: Generation, description: "Sinh, validate, repair và dedup test case" }
+security: []
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getAiServiceHealth
+      summary: Kiểm tra trạng thái ai-service và provider đang cấu hình
+      responses:
+        "200":
+          description: Service đang hoạt động
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthResponse" }
+        "500":
+          description: Lỗi nội bộ
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /v1/generate:
+    post:
+      tags: [Generation]
+      operationId: generateTestCases
+      summary: Sinh test case bằng chiến lược LLM hoặc HYBRID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GenerateRequest" }
+      responses:
+        "200":
+          description: |
+            Sinh test hoàn tất; từng case có thể VALID, INVALID hoặc DUPLICATE. ai-service gọi
+            GENERATE một lần cho mỗi endpoint trong `endpoints` (tối đa `AI_LLM_CASES_PER_CALL`
+            case, `max_tokens` giới hạn), rồi repair trong thời gian còn lại của
+            `AI_GENERATE_BUDGET_SECONDS`. Một lời gọi GENERATE lỗi hoặc hết ngân sách chỉ làm
+            mất case của endpoint đó: lời gọi lỗi vẫn có trong `llm_calls` (`error` khác null)
+            và kết quả của các endpoint khác vẫn được trả về (S11-02).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GenerateResponse" }
+        "422":
+          description: |
+            Request hoặc DSL đầu vào không hợp lệ, hoặc prompt sinh vượt
+            `AI_MAX_PROMPT_CHARS` hay không vừa context `AI_LLM_CONTEXT_TOKENS`
+            (ước lượng ký tự/3 token cộng phần output); khi đó LLM không được gọi.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "502":
+          description: |
+            Provider lỗi hoặc trả dữ liệu không dùng được, kể cả khi provider báo số
+            prompt token cho thấy prompt bị cắt theo context của model (kể cả cắt
+            một phần, khi số token nằm sát một kích thước context), ở MỌI lời gọi GENERATE
+            (mỗi endpoint một lời gọi). Khi đó `error.details.llm_calls` chứa các `LlmCall`
+            (purpose GENERATE, `error` khác null) để web lưu vào `llm_call_logs` (D09).
+            `error.message` là lý do ngắn bằng tiếng Việt cho người dùng (mã HTTP, model,
+            không có URL của provider); văn bản kỹ thuật gốc của provider (đã che khóa API
+            và query string) chỉ nằm trong `llm_calls[].error` (S14-06).
+            Khi máy chủ không có LLM (`AI_LLM_PROVIDER=disabled`, ADR-0007) request bị từ chối
+            ngay, không gọi model: `error.details` = `{"reason": "LLM_DISABLED", "llm_calls": []}`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: Lỗi nội bộ
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, provider, version]
+      properties:
+        status: { type: string, const: ok }
+        provider:
+          type: string
+          enum: [fake, openai_compatible, disabled]
+          description: "`disabled` = máy chủ không có LLM (production `AI_LLM_PROVIDER=disabled`, ADR-0007): web tắt LLM/HYBRID, chỉ cho RULE."
+        version: { type: string, minLength: 1 }
+        model:
+          type: string
+          minLength: 1
+          description: Model LLM mặc định của hệ thống (`AI_LLM_MODEL`), hiển thị chỉ đọc tại M04 (ADR-0004).
+        temperature:
+          type: number
+          minimum: 0
+          description: Temperature mặc định (`AI_LLM_TEMPERATURE`), ADR-0004.
+        seed:
+          type: integer
+          minimum: 0
+          description: Seed mặc định (`AI_LLM_SEED`), ADR-0004. Không bao giờ trả `AI_LLM_API_KEY`.
+        generate_budget_seconds:
+          type: number
+          exclusiveMinimum: 0
+          description: |
+            Ngân sách thời gian của một `POST /v1/generate` (`AI_GENERATE_BUDGET_SECONDS`). Web từ
+            chối sinh test (job FAILED, `AI_SERVICE_UNAVAILABLE`, chưa gọi LLM) khi
+            `AI_SERVICE_TIMEOUT` < giá trị này + 60, vì web sẽ bỏ cuộc trong khi ai-service vẫn
+            gọi LLM và các lời gọi đó không vào được `llm_call_logs` (D09) (S11-02).
+
+    GenerateRequest:
+      type: object
+      additionalProperties: false
+      required: [job_id, strategy, endpoints, business_rules, seed_cases, options]
+      properties:
+        job_id: { type: integer, format: int64, minimum: 1 }
+        strategy: { type: string, enum: [LLM, HYBRID] }
+        endpoints:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/NormalizedEndpoint" }
+        business_rules:
+          type: array
+          items: { $ref: "#/components/schemas/BusinessRule" }
+        seed_cases:
+          type: array
+          description: Case RULE làm ngữ cảnh cho HYBRID; để trống với LLM
+          items: { $ref: "./test-dsl.schema.json" }
+        options: { $ref: "#/components/schemas/GenerateOptions" }
+        auth:
+          $ref: "#/components/schemas/AuthContext"
+      allOf:
+        - if:
+            properties:
+              strategy: { const: HYBRID }
+          then:
+            properties:
+              seed_cases: { minItems: 1 }
+
+    NormalizedEndpoint:
+      type: object
+      additionalProperties: false
+      required: [id, method, path, operation_id, summary, description, parameters, request_body, responses, security]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        method: { type: string, enum: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS] }
+        path: { type: string, pattern: "^/" }
+        operation_id: { type: [string, "null"] }
+        summary: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        parameters:
+          type: [array, "null"]
+          items: { type: object, additionalProperties: true }
+        request_body: { type: [object, "null"], additionalProperties: true }
+        responses: { type: object, additionalProperties: true }
+        security:
+          type: [array, "null"]
+          items: { type: object, additionalProperties: true }
+
+    BusinessRule:
+      type: object
+      additionalProperties: false
+      required: [code, description, endpoint_id]
+      properties:
+        code: { type: string, minLength: 1, maxLength: 50 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        endpoint_id: { type: [integer, "null"], format: int64, minimum: 1 }
+
+    AuthRoleName: { type: string, pattern: "^[a-z][a-z0-9_]{0,30}$" }
+    AuthContext:
+      type: object
+      additionalProperties: false
+      required: [scheme, default_role, roles]
+      description: |
+        Tùy chọn, chỉ có ở job của thực nghiệm (ADR-0006). KHÔNG chứa token: lượt chạy của web định nghĩa biến
+        `auth_token_<role>` cho mỗi vai trò, nên case được dùng `{{auth_token_<role>}}` mà không cần extract
+        (validator coi là đã định nghĩa). Step gọi operation có security, không có header Authorization và case
+        không phải AUTH được executor thêm `Authorization: Bearer {{auth_token_<role>}}` (role của operation
+        hoặc default_role). Case AUTH tự đặt hoặc bỏ header.
+      properties:
+        scheme: { type: string, enum: [bearer] }
+        default_role: { $ref: "#/components/schemas/AuthRoleName" }
+        roles:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [name]
+            properties:
+              name: { $ref: "#/components/schemas/AuthRoleName" }
+              description: { type: [string, "null"], maxLength: 500 }
+        operations:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [method, path]
+            properties:
+              method: { type: string, enum: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS] }
+              path: { type: string, pattern: "^/" }
+              role:
+                oneOf:
+                  - { $ref: "#/components/schemas/AuthRoleName" }
+                  - { type: "null" }
+              forbidden_roles: { type: array, items: { $ref: "#/components/schemas/AuthRoleName" } }
+
+    GenerateOptions:
+      type: object
+      additionalProperties: false
+      required: [max_cases_per_endpoint, techniques, model, temperature, seed, max_repair_attempts]
+      properties:
+        max_cases_per_endpoint:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+          description: |
+            Trần số case mỗi endpoint. Mỗi lời gọi GENERATE yêu cầu
+            min(giá trị này, `AI_LLM_CASES_PER_CALL`) case (S11-02).
+        techniques:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [HAPPY_PATH, BOUNDARY, EQUIVALENCE, INVALID_INPUT, MISSING_REQUIRED, TYPE_MISMATCH, AUTH, BUSINESS_RULE, SEQUENCE]
+        model: { type: [string, "null"] }
+        temperature: { type: number, minimum: 0, maximum: 2, default: 0.2 }
+        seed:
+          type: [integer, "null"]
+          description: null thì ai-service dùng `AI_LLM_SEED`; seed thực tế được ghi trong `llm_calls[].seed`
+        max_repair_attempts: { type: integer, minimum: 0, maximum: 10, default: 2 }
+
+    GenerateResponse:
+      type: object
+      additionalProperties: false
+      required: [test_cases, llm_calls, stats]
+      properties:
+        test_cases:
+          type: array
+          items: { $ref: "#/components/schemas/GeneratedTestCase" }
+        llm_calls:
+          type: array
+          items: { $ref: "#/components/schemas/LlmCall" }
+        stats: { $ref: "#/components/schemas/GenerationStats" }
+
+    GeneratedTestCase:
+      type: object
+      additionalProperties: false
+      required: [dsl, status, validation_errors, repair_attempts, fingerprint]
+      properties:
+        dsl:
+          description: DSL có thể chưa hợp lệ khi status là INVALID
+          type: object
+          additionalProperties: true
+        status: { type: string, enum: [VALID, INVALID, DUPLICATE] }
+        validation_errors: { type: array, items: { type: string } }
+        repair_attempts: { type: integer, minimum: 0 }
+        fingerprint:
+          type: [string, "null"]
+          pattern: "^[a-f0-9]{64}$"
+          description: null khi payload hỏng đến mức chưa thể chuẩn hóa
+
+    ChatMessage:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role: { type: string, enum: [system, user, assistant] }
+        content: { type: string }
+
+    LlmCall:
+      type: object
+      additionalProperties: false
+      required: [purpose, provider, model, prompt, response_raw, temperature, seed, prompt_tokens, completion_tokens, latency_ms, error]
+      properties:
+        purpose: { type: string, enum: [GENERATE, REPAIR] }
+        provider: { type: string, minLength: 1 }
+        model: { type: string, minLength: 1 }
+        prompt: { type: array, minItems: 1, items: { $ref: "#/components/schemas/ChatMessage" } }
+        response_raw: { type: string }
+        temperature: { type: number, minimum: 0, maximum: 2 }
+        seed: { type: [integer, "null"] }
+        prompt_tokens: { type: [integer, "null"], minimum: 0 }
+        completion_tokens: { type: [integer, "null"], minimum: 0 }
+        latency_ms: { type: integer, minimum: 0 }
+        error: { type: [string, "null"] }
+        case_index:
+          description: >-
+            Chỉ số trong `test_cases` của test case mà lời gọi REPAIR này sửa (S13-03), để web gắn
+            log với test case (M10). `null` với lời gọi GENERATE và với REPAIR của case không được
+            trả về (vượt `max_cases_per_endpoint`). Trường tùy chọn: thiếu thì coi như `null`.
+          type: [integer, "null"]
+          minimum: 0
+
+    GenerationStats:
+      type: object
+      additionalProperties: false
+      required: [generated, valid, invalid, repaired, duplicates]
+      properties:
+        generated: { type: integer, minimum: 0 }
+        valid: { type: integer, minimum: 0 }
+        invalid: { type: integer, minimum: 0 }
+        repaired: { type: integer, minimum: 0 }
+        duplicates: { type: integer, minimum: 0 }
+
+    Error:
+      $ref: "./web-api.openapi.yaml#/components/schemas/Error"

@@ -1,0 +1,20 @@
+{
+  "dsl_version": "1.0",
+  "title": "Invalid test with json_path assertion missing value for eq op",
+  "endpoint": { "method": "GET", "path": "/items" },
+  "technique": "HAPPY_PATH",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "step 1",
+      "request": { "method": "GET", "path": "/items" },
+      "assertions": [
+        {
+          "type": "json_path",
+          "path": "$.id",
+          "op": "eq"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.sh text eol=lf
+# Experiment data of the paper: keep the files byte-for-byte as they were written
+# (CSV exports use CRLF line endings per RFC 4180).
+paper/runs/** -text
+paper/schemathesis/** -text
+paper/results/** -text

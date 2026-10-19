@@ -1,0 +1,14 @@
+{
+  "dsl_version": "1.0",
+  "title": "Invalid test with unknown technique",
+  "endpoint": { "method": "GET", "path": "/items" },
+  "technique": "FUZZING_CHAOS",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "step 1",
+      "request": { "method": "GET", "path": "/items" },
+      "assertions": [{ "type": "status", "equals": 200 }]
+    }
+  ]
+}

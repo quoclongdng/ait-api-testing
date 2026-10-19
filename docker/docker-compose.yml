@@ -1,0 +1,192 @@
+# Local development stack. Run through the Makefile (make up / make down).
+name: ait
+
+x-web-env: &web-env
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${POSTGRES_DB:-ait}
+  DB_USERNAME: ${POSTGRES_USER:-ait}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  AI_SERVICE_URL: http://ai-service:8001
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ait}
+      POSTGRES_USER: ${POSTGRES_USER:-ait}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # Debug ports are bound to loopback only (S10-01 audit r2): web and worker reach postgres,
+    # ai-service and ollama over the compose network, so nothing else on the LAN should.
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/web/Dockerfile
+    environment:
+      <<: *web-env
+      RUN_MIGRATIONS: "1"
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - ../web:/var/www/html
+      - ../docs/contracts:/contracts:ro
+      - ../docs:/var/www/docs:ro
+      - ../benchmark:/var/www/benchmark:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/up"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/web/Dockerfile
+    # One worker serves both queues (D10, S14-06): `default` (RULE generation, test runs) before `llm`
+    # (LLM/HYBRID generation, experiments). Production splits them: worker + worker-llm.
+    command: ["php", "artisan", "queue:work", "--queue=default,llm", "--tries=1", "--timeout=1800"]
+    # queue:work exits after a job passes its own timeout or after the --memory limit (S13-03):
+    # restart it so the remaining queued jobs (experiment steps, generation, runs) still run.
+    restart: unless-stopped
+    environment: *web-env
+    # No extra_hosts host.docker.internal: only ai-service calls the LLM; web and worker send
+    # requests to targets (SSRF surface, D07) and must not get a route name to the host.
+    volumes:
+      - ../web:/var/www/html
+      - ../docs/contracts:/contracts:ro
+      - ../docs:/var/www/docs:ro
+      - ../benchmark:/var/www/benchmark:ro
+    depends_on:
+      web:
+        condition: service_healthy
+
+  vite:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm install --no-audit --no-fund && npm run build -- --watch"]
+    volumes:
+      - ../web:/app
+      - web_node_modules:/app/node_modules
+
+  ai-service:
+    build:
+      context: ..
+      dockerfile: docker/ai-service/Dockerfile
+    env_file:
+      - path: ../ai-service/.env
+        required: false
+    extra_hosts:
+      # Reach a host-native Ollama (or other OpenAI-compatible server) at host.docker.internal.
+      - "host.docker.internal:host-gateway"
+    ports:
+      # Loopback only: POST /v1/generate has no auth and can spend the LLM key (S10-01 audit r2).
+      - "127.0.0.1:${AI_SERVICE_PORT:-8001}:8001"
+    volumes:
+      - ../ai-service:/app
+      - ../docs/contracts:/contracts:ro
+      - ../docs:/docs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  benchmark:
+    build:
+      context: ..
+      dockerfile: docker/benchmark/Dockerfile
+    # Shared with the single-bug sandboxes of docker-compose.experiment.yml (S12-02).
+    image: ait-benchmark-simple-store:local
+    networks:
+      default:
+        # Clean-variant hostname for experiments: http://simple-store:8000
+        aliases: ["simple-store"]
+    ports:
+      - "${BENCHMARK_PORT:-8002}:8000"
+    volumes:
+      - ../benchmark/simple-store:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  benchmark-order:
+    build:
+      context: ..
+      dockerfile: docker/benchmark-order/Dockerfile
+    # Shared with the single-bug sandboxes of docker-compose.experiment.yml (S12-02).
+    image: ait-benchmark-ecommerce-order:local
+    networks:
+      default:
+        # Clean-variant hostname for experiments: http://ecommerce-order:8000
+        aliases: ["ecommerce-order"]
+    ports:
+      - "${BENCHMARK_ORDER_PORT:-8003}:8000"
+    volumes:
+      - ../benchmark/ecommerce-order:/app
+      # Shared DSL schema for tests/test_bugs.py under `make test-bench` (S10-01 audit r2).
+      - ../docs:/docs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  benchmark-booking:
+    build:
+      context: ..
+      dockerfile: docker/benchmark-booking/Dockerfile
+    # Shared with the single-bug sandboxes of docker-compose.experiment.yml (S12-02).
+    image: ait-benchmark-appointment-booking:local
+    networks:
+      default:
+        # Clean-variant hostname for experiments: http://appointment-booking:8000
+        aliases: ["appointment-booking"]
+    ports:
+      - "${BENCHMARK_BOOKING_PORT:-8004}:8000"
+    volumes:
+      - ../benchmark/appointment-booking:/app
+      # Shared DSL schema for tests/test_bugs.py under `make test-bench` (S10-01 audit r2).
+      - ../docs:/docs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Optional local LLM: make up-llm, then make pull-model (MODEL=qwen2.5-coder:7b by default)
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["llm"]
+    environment:
+      # Ollama's default context (2k-4k tokens) silently drops the head of longer prompts,
+      # i.e. the system prompt. Must equal AI_LLM_CONTEXT_TOKENS (16384): it covers
+      # AI_MAX_PROMPT_CHARS=36000 (~12k tokens) plus one call's max_tokens. A host-native
+      # Ollama needs the same: OLLAMA_CONTEXT_LENGTH=16384 ollama serve.
+      OLLAMA_CONTEXT_LENGTH: "16384"
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  pgdata:
+  web_node_modules:
+  ollama:

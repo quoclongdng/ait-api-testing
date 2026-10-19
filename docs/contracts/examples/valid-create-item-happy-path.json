@@ -1,0 +1,29 @@
+{
+  "dsl_version": "1.0",
+  "title": "Create item with valid payload returns 201",
+  "endpoint": { "method": "POST", "path": "/items" },
+  "technique": "HAPPY_PATH",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "create item",
+      "request": {
+        "method": "POST",
+        "path": "/items",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "name": "Pen", "price": 10 }
+      },
+      "extract": [{ "var": "itemId", "from": "body", "path": "$.id" }],
+      "assertions": [
+        { "type": "status", "equals": 201 },
+        { "type": "json_schema", "schema_ref": "#/components/schemas/Item" },
+        { "type": "json_path", "path": "$.name", "op": "eq", "value": "Pen" }
+      ]
+    },
+    {
+      "name": "read created item",
+      "request": { "method": "GET", "path": "/items/{id}", "path_params": { "id": "{{itemId}}" } },
+      "assertions": [{ "type": "status", "equals": 200 }]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "dsl_version": "1.0",
+  "title": "Product id has an unknown JSON type name",
+  "description": "Passes the JSON Schema but op type names no JSON type (uuid), so the case is rejected by the semantic check of both validators (D04).",
+  "endpoint": { "method": "GET", "path": "/products" },
+  "technique": "HAPPY_PATH",
+  "source": "LLM",
+  "steps": [
+    {
+      "name": "list products",
+      "request": { "method": "GET", "path": "/products" },
+      "assertions": [
+        { "type": "status", "equals": 200 },
+        { "type": "json_path", "path": "$[0].id", "op": "type", "value": "uuid" }
+      ]
+    }
+  ]
+}

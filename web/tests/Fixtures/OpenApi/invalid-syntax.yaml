@@ -1,0 +1,13 @@
+openapi: 3.0.0
+info:
+  title: Broken YAML Syntax
+  version: 1.0.0
+paths:
+  /broken:
+    get:
+      summary: "unclosed string without end quote
+      responses:
+        '200':
+          description: ok
+      indentation_error:
+    bad_indent: true

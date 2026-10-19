@@ -1,0 +1,20 @@
+{
+  "dsl_version": "1.0",
+  "title": "Valid test with exists and not_exists assertions without value",
+  "endpoint": { "method": "GET", "path": "/items" },
+  "technique": "HAPPY_PATH",
+  "source": "RULE",
+  "steps": [
+    {
+      "name": "step 1",
+      "request": { "method": "GET", "path": "/items" },
+      "assertions": [
+        { "type": "status", "equals": 200 },
+        { "type": "json_path", "path": "$.items", "op": "exists" },
+        { "type": "json_path", "path": "$.deleted_at", "op": "not_exists" },
+        { "type": "header", "name": "Content-Type", "op": "exists" },
+        { "type": "header", "name": "X-Deprecated", "op": "not_exists" }
+      ]
+    }
+  ]
+}

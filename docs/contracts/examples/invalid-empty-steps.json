@@ -1,0 +1,8 @@
+{
+  "dsl_version": "1.0",
+  "title": "Invalid test with empty steps array",
+  "endpoint": { "method": "GET", "path": "/items" },
+  "technique": "HAPPY_PATH",
+  "source": "RULE",
+  "steps": []
+}

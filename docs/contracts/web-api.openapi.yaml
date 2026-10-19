@@ -1,0 +1,1943 @@
+openapi: 3.1.0
+info:
+  title: AIT Web JSON API
+  version: 1.0.0
+  description: |
+    Hợp đồng JSON API nội bộ của ứng dụng Laravel. Hợp đồng ở trạng thái DRAFT
+    cho đến Gate G0. Response thành công dùng `data`; response danh sách có thêm
+    `meta`. Mọi lỗi dùng error envelope và `trace_id` theo docs/DESIGN.md §6.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Môi trường phát triển cục bộ
+tags:
+  - { name: System, description: Trạng thái hệ thống }
+  - { name: Projects, description: Project thuộc người dùng }
+  - { name: API specs, description: Nhập và đọc đặc tả OpenAPI }
+  - { name: Business rules, description: Ràng buộc nghiệp vụ của project }
+  - { name: Test suites, description: Nhóm test case theo spec }
+  - { name: Generation, description: "Job sinh test RULE, LLM và HYBRID" }
+  - { name: Test cases, description: "DSL, duyệt và lưu trữ test case" }
+  - { name: Test runs, description: Thực thi và báo cáo test }
+  - { name: Experiments, description: Thực nghiệm benchmark }
+  - { name: Administration, description: Tài nguyên chỉ ADMIN quản lý }
+security:
+  - cookieAuth: []
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: getHealth
+      summary: Kiểm tra trạng thái web, cơ sở dữ liệu và ai-service
+      security: []
+      responses:
+        "200":
+          description: Hệ thống hoạt động; `degraded` nếu một dependency lỗi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthResponse" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /projects:
+    get:
+      tags: [Projects]
+      operationId: listProjects
+      summary: Liệt kê project người dùng được phép xem
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Projects]
+      operationId: createProject
+      summary: Tạo project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectWrite" }
+      responses:
+        "201":
+          description: Project đã được tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /projects/{projectId}:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      tags: [Projects]
+      operationId: getProject
+      summary: Xem project
+      responses:
+        "200":
+          description: Chi tiết project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    patch:
+      tags: [Projects]
+      operationId: updateProject
+      summary: Cập nhật project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectPatch" }
+      responses:
+        "200":
+          description: Project đã được cập nhật
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Projects]
+      operationId: deleteProject
+      summary: Xóa mềm project
+      responses:
+        "204": { description: Project đã được xóa mềm }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /projects/{projectId}/specs:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    post:
+      tags: [API specs]
+      operationId: createApiSpec
+      summary: Nhập OpenAPI bằng file hoặc nội dung JSON/YAML
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApiSpecContentCreate" }
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/ApiSpecFileCreate" }
+      responses:
+        "201":
+          description: Spec đã được lưu và parse
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiSpecResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/SpecParseFailed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /specs/{specId}:
+    parameters:
+      - { $ref: "#/components/parameters/SpecId" }
+    get:
+      tags: [API specs]
+      operationId: getApiSpec
+      summary: Xem spec và trạng thái parse
+      responses:
+        "200":
+          description: Chi tiết spec
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiSpecResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /specs/{specId}/endpoints:
+    parameters:
+      - { $ref: "#/components/parameters/SpecId" }
+    get:
+      tags: [API specs]
+      operationId: listApiSpecEndpoints
+      summary: Liệt kê endpoint đã chuẩn hóa của spec
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách endpoint
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EndpointCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422":
+          description: |
+            `VALIDATION_FAILED` khi `page`/`per_page` nằm ngoài miền khai báo (không kẹp giá trị, giống mọi
+            thao tác liệt kê khác), hoặc `SPEC_PARSE_FAILED` khi spec ở trạng thái `PARSE_FAILED`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /projects/{projectId}/business-rules:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      tags: [Business rules]
+      operationId: listBusinessRules
+      summary: Liệt kê business rule của project
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách business rule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessRuleCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Business rules]
+      operationId: createBusinessRule
+      summary: Tạo business rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BusinessRuleWrite" }
+      responses:
+        "201":
+          description: Business rule đã được tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessRuleResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /business-rules/{businessRuleId}:
+    parameters:
+      - { $ref: "#/components/parameters/BusinessRuleId" }
+    get:
+      tags: [Business rules]
+      operationId: getBusinessRule
+      summary: Xem business rule
+      responses:
+        "200":
+          description: Chi tiết business rule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessRuleResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    patch:
+      tags: [Business rules]
+      operationId: updateBusinessRule
+      summary: Cập nhật business rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BusinessRulePatch" }
+      responses:
+        "200":
+          description: Business rule đã được cập nhật
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BusinessRuleResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Business rules]
+      operationId: deleteBusinessRule
+      summary: Xóa business rule
+      responses:
+        "204": { description: Business rule đã được xóa }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /projects/{projectId}/suites:
+    parameters:
+      - { $ref: "#/components/parameters/ProjectId" }
+    get:
+      tags: [Test suites]
+      operationId: listTestSuites
+      summary: Liệt kê test suite của project
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách test suite
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestSuiteCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Test suites]
+      operationId: createTestSuite
+      summary: Tạo test suite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TestSuiteCreate" }
+      responses:
+        "201":
+          description: Test suite đã được tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestSuiteResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /suites/{suiteId}:
+    parameters:
+      - { $ref: "#/components/parameters/SuiteId" }
+    get:
+      tags: [Test suites]
+      operationId: getTestSuite
+      summary: Xem test suite
+      responses:
+        "200":
+          description: Chi tiết test suite
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestSuiteResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /suites/{suiteId}/generation-jobs:
+    parameters:
+      - { $ref: "#/components/parameters/SuiteId" }
+    post:
+      tags: [Generation]
+      operationId: createGenerationJob
+      summary: Tạo job sinh test theo RULE, LLM hoặc HYBRID
+      description: |
+        Khi ai-service báo `provider: disabled` trên `GET /health` (máy chủ không có LLM, ADR-0007),
+        LLM và HYBRID bị từ chối với 422 `VALIDATION_FAILED` (`details.strategy`); RULE vẫn chạy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GenerationJobCreate" }
+      responses:
+        "202":
+          description: Job đã vào hàng đợi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GenerationJobResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "503": { $ref: "#/components/responses/AiServiceUnavailable" }
+
+  /generation-jobs/{generationJobId}:
+    parameters:
+      - { $ref: "#/components/parameters/GenerationJobId" }
+    get:
+      tags: [Generation]
+      operationId: getGenerationJob
+      summary: Xem trạng thái và thống kê job sinh test
+      responses:
+        "200":
+          description: Chi tiết generation job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GenerationJobResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /suites/{suiteId}/test-cases:
+    parameters:
+      - { $ref: "#/components/parameters/SuiteId" }
+    get:
+      tags: [Test cases]
+      operationId: listTestCases
+      summary: Liệt kê test case trong suite
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - name: source
+          in: query
+          schema: { $ref: "#/components/schemas/TestCaseSource" }
+        - name: technique
+          in: query
+          schema: { $ref: "#/components/schemas/TestTechnique" }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/TestCaseStatus" }
+      responses:
+        "200":
+          description: Danh sách test case
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestCaseCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /test-cases/{testCaseId}:
+    parameters:
+      - { $ref: "#/components/parameters/TestCaseId" }
+    get:
+      tags: [Test cases]
+      operationId: getTestCase
+      summary: Xem test case, DSL và lỗi validation
+      responses:
+        "200":
+          description: Chi tiết test case
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestCaseResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    patch:
+      tags: [Test cases]
+      operationId: updateTestCaseDsl
+      summary: Sửa DSL thủ công và validate lại
+      description: |
+        Máy trạng thái §4.2. DSL được validate lại (JSON Schema + ngữ nghĩa với spec của suite) và tính lại fingerprint để dedup; nguồn đổi thành MANUAL.
+        - INVALID: DSL hợp lệ và không trùng → VALID; DSL vẫn lỗi → lưu bản nháp, giữ INVALID kèm `validation_errors` (200).
+        - VALID / APPROVED: DSL hợp lệ và không trùng → VALID (case APPROVED phải duyệt lại); DSL lỗi → 422 DSL_INVALID, không lưu.
+        - DSL trùng fingerprint với case khác trong suite → 409 CONFLICT, không lưu.
+        - DUPLICATE / ARCHIVED → 409 INVALID_STATE_TRANSITION.
+        - Thiếu `dsl` hoặc `title` rỗng → 422 VALIDATION_FAILED.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TestCasePatch" }
+      responses:
+        "200":
+          description: Test case đã được cập nhật và validate lại
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestCaseResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { description: "INVALID_STATE_TRANSITION (case DUPLICATE/ARCHIVED) hoặc CONFLICT (DSL trùng case khác trong suite)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { $ref: "#/components/responses/DslInvalid" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /test-cases/{testCaseId}/approve:
+    parameters:
+      - { $ref: "#/components/parameters/TestCaseId" }
+    post:
+      tags: [Test cases]
+      operationId: approveTestCase
+      summary: Duyệt test case VALID
+      description: VALID → APPROVED. Trạng thái khác → 409 INVALID_STATE_TRANSITION.
+      responses:
+        "200":
+          description: Test case đã được duyệt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestCaseResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/InvalidStateTransition" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /test-cases/{testCaseId}/archive:
+    parameters:
+      - { $ref: "#/components/parameters/TestCaseId" }
+    post:
+      tags: [Test cases]
+      operationId: archiveTestCase
+      summary: Lưu trữ test case VALID hoặc APPROVED
+      description: VALID | APPROVED → ARCHIVED. Trạng thái khác → 409 INVALID_STATE_TRANSITION.
+      responses:
+        "200":
+          description: Test case đã được lưu trữ
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestCaseResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/InvalidStateTransition" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /suites/{suiteId}/runs:
+    parameters:
+      - { $ref: "#/components/parameters/SuiteId" }
+    post:
+      tags: [Test runs]
+      operationId: createTestRun
+      summary: Tạo lần chạy test suite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TestRunCreate" }
+      responses:
+        "202":
+          description: Test run đã vào hàng đợi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestRunResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/TargetNotAllowed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /runs/{runId}:
+    parameters:
+      - { $ref: "#/components/parameters/RunId" }
+    get:
+      tags: [Test runs]
+      operationId: getTestRun
+      summary: Xem trạng thái và tổng kết test run
+      responses:
+        "200":
+          description: Chi tiết test run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestRunResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /runs/{runId}/results:
+    parameters:
+      - { $ref: "#/components/parameters/RunId" }
+    get:
+      tags: [Test runs]
+      operationId: listTestRunResults
+      summary: Liệt kê kết quả từng test case
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - name: verdict
+          in: query
+          schema: { $ref: "#/components/schemas/TestVerdict" }
+      responses:
+        "200":
+          description: Danh sách test result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestResultCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /runs/{runId}/cancel:
+    parameters:
+      - { $ref: "#/components/parameters/RunId" }
+    post:
+      tags: [Test runs]
+      operationId: cancelTestRun
+      summary: Hủy test run đang QUEUED hoặc RUNNING
+      responses:
+        "200":
+          description: Test run đã được hủy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestRunResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/InvalidStateTransition" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /runs/{runId}/export:
+    parameters:
+      - { $ref: "#/components/parameters/RunId" }
+    get:
+      tags: [Test runs]
+      operationId: exportTestRun
+      summary: Xuất báo cáo test run
+      description: |
+        Trả file tải về (`Content-Disposition: attachment`). JSON theo `TestRunReport`;
+        CSV là UTF-8 có BOM, ô bắt đầu bằng `= + - @ \t \r` được thêm tiền tố `'` (chống CSV injection);
+        HTML tự chứa (không script, không tài nguyên ngoài), mọi dữ liệu từ target/LLM đều được escape.
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [json, csv, html] }
+      responses:
+        "200":
+          description: Báo cáo ở định dạng yêu cầu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestRunReport" }
+            text/csv:
+              schema: { type: string }
+            text/html:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /experiments:
+    get:
+      tags: [Experiments]
+      operationId: listExperiments
+      summary: Liệt kê thực nghiệm
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách thực nghiệm
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExperimentCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Experiments]
+      operationId: createExperiment
+      summary: Tạo thực nghiệm
+      description: |
+        Tạo thực nghiệm ở trạng thái PLANNED và đưa vào hàng đợi (D10). Worker chạy, với mỗi lần lặp r
+        (seed = config.seeds[r-1], mặc định giao thức 42, 1024, 2026 — ADR-0003): sinh suite mới theo chiến lược,
+        reset sandbox (`POST /__admin/reset`) rồi chạy toàn bộ suite trên biến thể sạch và trên từng biến thể
+        chỉ bật một bug, áp dụng D14 rồi tính chỉ số §11 (trung bình và độ lệch chuẩn). Mỗi bước là một job
+        riêng trong hàng đợi.
+        Trả 422 khi benchmark chưa có seeded bug, thiếu openapi.yaml hoặc sandbox biến thể bug chưa cấu hình.
+        Bản triển khai không có sandbox biến thể bug (`EXPERIMENTS_ENABLED=false`, ADR-0007) luôn trả 422
+        `VALIDATION_FAILED` (`details.experiments`); chiến lược LLM/HYBRID trả 422 khi ai-service báo
+        `provider: disabled`. Đọc và xuất thực nghiệm đã có vẫn hoạt động.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExperimentCreate" }
+      responses:
+        "202":
+          description: Thực nghiệm đã được lập kế hoạch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExperimentResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /experiments/{experimentId}:
+    parameters:
+      - { $ref: "#/components/parameters/ExperimentId" }
+    get:
+      tags: [Experiments]
+      operationId: getExperiment
+      summary: Xem cấu hình, trạng thái và chỉ số thực nghiệm
+      responses:
+        "200":
+          description: Chi tiết thực nghiệm
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExperimentResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /experiments/{experimentId}/export:
+    parameters:
+      - { $ref: "#/components/parameters/ExperimentId" }
+    get:
+      tags: [Experiments]
+      operationId: exportExperiment
+      summary: Xuất dữ liệu thô và chỉ số của thực nghiệm
+      description: |
+        Trả file tải về (`Content-Disposition: attachment`) gồm cấu hình (model, temperature, seed từng lần lặp),
+        dữ liệu từng lần lặp, phát hiện từng bug (D14) và chỉ số §11 (ADR-0003). JSON theo `ExperimentExport`;
+        CSV là bảng dạng dài UTF-8 có BOM với cột
+        `experiment_id, experiment_name, benchmark, benchmark_version, strategy, status, model, temperature, repetitions,
+        record_type, repetition, seed, bug_code, bug_category, key, value`, trong đó `record_type` là
+        `metric | stddev | repetition | detection | error`; ô bắt đầu bằng `= + - @ \t \r` được thêm tiền tố `'`.
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [json, csv] }
+      responses:
+        "200":
+          description: Dữ liệu thực nghiệm ở định dạng yêu cầu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExperimentExport" }
+            text/csv:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /admin/users:
+    get:
+      tags: [Administration]
+      operationId: listUsers
+      summary: Liệt kê người dùng
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách người dùng
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Administration]
+      operationId: createUser
+      summary: Tạo tài khoản người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreate" }
+      responses:
+        "201":
+          description: Người dùng đã được tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /admin/users/{userId}:
+    parameters:
+      - { $ref: "#/components/parameters/UserId" }
+    patch:
+      tags: [Administration]
+      operationId: updateUser
+      summary: Đổi tên, vai trò hoặc trạng thái khóa của người dùng
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserPatch" }
+      responses:
+        "200":
+          description: Người dùng đã được cập nhật
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /admin/allowed-targets:
+    get:
+      tags: [Administration]
+      operationId: listAllowedTargets
+      summary: Liệt kê target được phép gọi
+      responses:
+        "200":
+          description: Danh sách allowed target
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllowedTargetCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Administration]
+      operationId: createAllowedTarget
+      summary: Thêm target vào allowlist
+      description: |
+        `host` là hostname hoặc địa chỉ IP. Địa chỉ IPv4 phải viết dạng chuẩn a.b.c.d: host có nhãn cuối là số
+        (2130706433, 0x7f000001, 127.1...) bị từ chối 422 `VALIDATION_FAILED`, hoặc `TARGET_NOT_ALLOWED` nếu địa chỉ
+        thật thuộc vùng bị chặn. Địa chỉ link-local/metadata luôn bị chặn; khi chặn mạng riêng (máy chủ công khai),
+        loopback, mạng riêng và tên nội bộ (localhost, host.docker.internal, metadata.google.internal...) cũng bị chặn.
+        Lỗi kiểm tra dữ liệu (`VALIDATION_FAILED`) có `details.<trường>` là danh sách thông báo; `TARGET_NOT_ALLOWED`
+        (422) và `CONFLICT` (409) là lỗi nghiệp vụ nên `details` là đối tượng ngữ cảnh: `host` (chuỗi, đã chuẩn hóa),
+        và `port` với `CONFLICT`; thông báo cho người dùng nằm ở `error.message`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AllowedTargetWrite" }
+      responses:
+        "201":
+          description: Allowed target đã được tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AllowedTargetResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /admin/allowed-targets/{allowedTargetId}:
+    parameters:
+      - { $ref: "#/components/parameters/AllowedTargetId" }
+    delete:
+      tags: [Administration]
+      operationId: deleteAllowedTarget
+      summary: Xóa target khỏi allowlist
+      responses:
+        "204": { description: Allowed target đã được xóa }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /admin/benchmarks:
+    get:
+      tags: [Administration]
+      operationId: listBenchmarks
+      summary: Liệt kê benchmark
+      parameters:
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+      responses:
+        "200":
+          description: Danh sách benchmark
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkCollectionResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    post:
+      tags: [Administration]
+      operationId: createBenchmark
+      summary: Đăng ký benchmark
+      description: |
+        `version` được chuẩn hóa trước khi kiểm tra trùng và lưu: bỏ khoảng trắng đầu/cuối; phiên bản dạng số
+        (sau tiền tố `v`/`V` tùy chọn là chữ số) có đúng một tiền tố `v` ("1.0", "V1.0" → "v1.0"), chuỗi khác giữ
+        nguyên ("beta"); trùng (slug, version) sau chuẩn hóa trả 409 `CONFLICT`.
+        Nếu tồn tại benchmark/<slug>/ground-truth.yaml thì các seeded bug được gắn vào benchmark mới, và `version`
+        phải bằng phiên bản của ground truth (khác thì 422 `VALIDATION_FAILED` trên `version`; phiên bản mới
+        được tạo bằng cách sửa ground-truth.yaml rồi đồng bộ ở M14).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkCreate" }
+      responses:
+        "201":
+          description: Benchmark đã được tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /admin/benchmarks/{benchmarkId}:
+    parameters:
+      - { $ref: "#/components/parameters/BenchmarkId" }
+    delete:
+      tags: [Administration]
+      operationId: deleteBenchmark
+      summary: Xóa benchmark chưa được thực nghiệm nào dùng
+      description: |
+        Xóa benchmark cùng các seeded bug của nó (ví dụ bản đăng ký trùng do nhầm). Benchmark đã có thực nghiệm
+        tham chiếu thì không xóa được: 409 `CONFLICT`, `details` gồm `benchmark_id` và `experiments` (số thực nghiệm).
+      responses:
+        "204": { description: Benchmark đã được xóa }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: ait_session
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Trang bắt đầu từ 1
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      description: Số phần tử trên một trang
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    ProjectId: { name: projectId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    SpecId: { name: specId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    BusinessRuleId: { name: businessRuleId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    SuiteId: { name: suiteId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    GenerationJobId: { name: generationJobId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    TestCaseId: { name: testCaseId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    RunId: { name: runId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    ExperimentId: { name: experimentId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    UserId: { name: userId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    AllowedTargetId: { name: allowedTargetId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+    BenchmarkId: { name: benchmarkId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+  responses:
+    Unauthenticated: { description: Chưa đăng nhập, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Forbidden: { description: "Không có quyền với tài nguyên. Trên route /admin/*, TESTER luôn nhận 403 kể cả khi id không tồn tại (vai trò được kiểm tra trước khi tìm tài nguyên).", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    NotFound: { description: Không tìm thấy tài nguyên, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Conflict: { description: Dữ liệu trùng hoặc xung đột, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    InvalidStateTransition: { description: Chuyển trạng thái không hợp lệ, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    ValidationFailed: { description: Dữ liệu đầu vào không hợp lệ, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    SpecParseFailed: { description: OpenAPI không hợp lệ hoặc không hỗ trợ, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    DslInvalid: { description: DSL không qua schema hoặc kiểm tra ngữ nghĩa, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    TargetNotAllowed: { description: Target ngoài allowlist hoặc request không hợp lệ, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    RateLimited:
+      description: Quá giới hạn request
+      headers:
+        Retry-After: { description: Số giây nên chờ, schema: { type: integer, minimum: 1 } }
+        X-RateLimit-Limit: { description: Số request tối đa trong một cửa sổ, schema: { type: integer, minimum: 1 } }
+        X-RateLimit-Remaining: { description: Số request còn lại trong cửa sổ hiện tại, schema: { type: integer, minimum: 0 } }
+        X-RateLimit-Reset: { description: Thời điểm (Unix timestamp) có thể gửi lại, schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    AiServiceUnavailable: { description: Không gọi được ai-service, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    InternalError: { description: Lỗi nội bộ, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  schemas:
+    ErrorCode:
+      type: string
+      enum: [VALIDATION_FAILED, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, INVALID_STATE_TRANSITION, SPEC_PARSE_FAILED, DSL_INVALID, TARGET_NOT_ALLOWED, RATE_LIMITED, LLM_PROVIDER_ERROR, AI_SERVICE_UNAVAILABLE, INTERNAL_ERROR]
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error, trace_id]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, details]
+          properties:
+            code: { $ref: "#/components/schemas/ErrorCode" }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+        trace_id: { type: string, minLength: 1 }
+    PaginationMeta:
+      type: object
+      additionalProperties: false
+      required: [current_page, per_page, total]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 100 }
+        total: { type: integer, minimum: 0 }
+    JsonObject: { type: object, additionalProperties: true }
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [status, checks]
+          properties:
+            status: { type: string, enum: [ok, degraded] }
+            checks:
+              type: object
+              additionalProperties: false
+              required: [database, ai_service]
+              properties:
+                database: { type: boolean }
+                ai_service:
+                  type: object
+                  additionalProperties: false
+                  required: [reachable, provider, version]
+                  properties:
+                    reachable: { type: boolean }
+                    provider: { type: [string, "null"] }
+                    version: { type: [string, "null"] }
+
+    Project:
+      type: object
+      additionalProperties: false
+      required: [id, name, description, owner_id, default_target_url, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+        owner_id: { type: integer, format: int64, minimum: 1 }
+        default_target_url: { type: [string, "null"], format: uri, maxLength: 500 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ProjectWrite:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+        default_target_url: { type: [string, "null"], format: uri, maxLength: 500 }
+    ProjectPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+        default_target_url: { type: [string, "null"], format: uri, maxLength: 500 }
+    ProjectResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/Project" } } }
+    ProjectCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Project" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    ApiSpecStatus: { type: string, enum: [UPLOADED, PARSED, PARSE_FAILED] }
+    ApiSpec:
+      type: object
+      additionalProperties: false
+      required: [id, project_id, version_label, source_filename, format, openapi_version, checksum, status, parse_errors, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        project_id: { type: integer, format: int64, minimum: 1 }
+        version_label: { type: string, minLength: 1, maxLength: 50 }
+        source_filename: { type: string, minLength: 1, maxLength: 255 }
+        format: { type: string, enum: [json, yaml] }
+        openapi_version: { type: string, minLength: 1, maxLength: 20 }
+        checksum: { type: string, pattern: "^[a-f0-9]{64}$" }
+        status: { $ref: "#/components/schemas/ApiSpecStatus" }
+        parse_errors: { type: [array, "null"], items: { type: string } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ApiSpecContentCreate:
+      type: object
+      additionalProperties: false
+      required: [version_label, format, raw_content]
+      properties:
+        version_label: { type: string, minLength: 1, maxLength: 50 }
+        source_filename: { type: [string, "null"], maxLength: 255 }
+        format: { type: string, enum: [json, yaml] }
+        raw_content: { type: string, minLength: 1, maxLength: 5242880 }
+    ApiSpecFileCreate:
+      type: object
+      additionalProperties: false
+      required: [version_label, file]
+      properties:
+        version_label: { type: string, minLength: 1, maxLength: 50 }
+        file: { type: string, format: binary, description: "File .json, .yaml hoặc .yml, tối đa 5 MB" }
+    ApiSpecResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/ApiSpec" } } }
+
+    HttpMethod: { type: string, enum: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS] }
+    Endpoint:
+      type: object
+      additionalProperties: false
+      required: [id, api_spec_id, method, path, operation_id, summary, description, parameters, request_body, responses, security]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        api_spec_id: { type: integer, format: int64, minimum: 1 }
+        method: { $ref: "#/components/schemas/HttpMethod" }
+        path: { type: string, pattern: "^/" }
+        operation_id: { type: [string, "null"] }
+        summary: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        parameters: { type: [array, "null"], items: { $ref: "#/components/schemas/JsonObject" } }
+        request_body: { type: [object, "null"], additionalProperties: true }
+        responses: { $ref: "#/components/schemas/JsonObject" }
+        security: { type: [array, "null"], items: { $ref: "#/components/schemas/JsonObject" } }
+    EndpointCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Endpoint" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    BusinessRule:
+      type: object
+      additionalProperties: false
+      required: [id, project_id, endpoint_id, code, description, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        project_id: { type: integer, format: int64, minimum: 1 }
+        endpoint_id: { type: [integer, "null"], format: int64, minimum: 1 }
+        code: { type: string, minLength: 1, maxLength: 50 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    BusinessRuleWrite:
+      type: object
+      additionalProperties: false
+      required: [code, description]
+      properties:
+        endpoint_id: { type: [integer, "null"], format: int64, minimum: 1 }
+        code:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Chữ cái, số, `-` hoặc `_`; server đổi sang chữ hoa trước khi lưu (ví dụ `br-001` thành `BR-001`).
+        description: { type: string, minLength: 1, maxLength: 5000 }
+    BusinessRulePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        endpoint_id: { type: [integer, "null"], format: int64, minimum: 1 }
+        code:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: "^[A-Za-z0-9_-]+$"
+          description: Chữ cái, số, `-` hoặc `_`; server đổi sang chữ hoa trước khi lưu.
+        description: { type: string, minLength: 1, maxLength: 5000 }
+    BusinessRuleResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/BusinessRule" } } }
+    BusinessRuleCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/BusinessRule" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    TestSuite:
+      type: object
+      additionalProperties: false
+      required: [id, project_id, api_spec_id, name, description, created_by, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        project_id: { type: integer, format: int64, minimum: 1 }
+        api_spec_id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+        created_by: { type: integer, format: int64, minimum: 1 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TestSuiteCreate:
+      type: object
+      additionalProperties: false
+      required: [api_spec_id, name]
+      properties:
+        api_spec_id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+    TestSuiteResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/TestSuite" } } }
+    TestSuiteCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/TestSuite" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    GenerationStrategy: { type: string, enum: [RULE, LLM, HYBRID] }
+    GenerationJobStatus: { type: string, enum: [QUEUED, RUNNING, SUCCEEDED, PARTIAL, FAILED] }
+    GenerationParams:
+      type: object
+      additionalProperties: false
+      required: [endpoint_ids]
+      properties:
+        endpoint_ids: { type: array, minItems: 1, uniqueItems: true, items: { type: integer, format: int64, minimum: 1 } }
+        techniques: { type: array, uniqueItems: true, items: { $ref: "#/components/schemas/TestTechnique" } }
+        max_cases_per_endpoint: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        model: { type: [string, "null"] }
+        temperature: { type: number, minimum: 0, maximum: 2, default: 0.2 }
+        seed: { type: [integer, "null"] }
+        max_repair_attempts: { type: integer, minimum: 0, maximum: 10, default: 2 }
+        auth:
+          $ref: "#/components/schemas/AuthContext"
+          description: Chỉ do thực nghiệm đặt (ADR-0006) — tên vai trò của fixture xác thực, không có token
+        business_rules:
+          type: array
+          items: { $ref: "#/components/schemas/ExperimentBusinessRule" }
+          description: Chỉ do thực nghiệm đặt cho job LLM/HYBRID (ADR-0006) — snapshot business rules thay cho rule của project
+    AuthRoleName: { type: string, pattern: "^[a-z][a-z0-9_]{0,30}$" }
+    AuthOperation:
+      type: object
+      additionalProperties: false
+      required: [method, path, role, forbidden_roles]
+      description: Vai trò riêng của một operation trong fixture xác thực (ADR-0006)
+      properties:
+        method: { $ref: "#/components/schemas/HttpMethod" }
+        path: { type: string, pattern: "^/" }
+        role:
+          oneOf:
+            - { $ref: "#/components/schemas/AuthRoleName" }
+            - { type: "null" }
+          description: Vai trò executor dùng cho operation khi case không tự đặt Authorization (null = default_role)
+        forbidden_roles: { type: array, uniqueItems: true, items: { $ref: "#/components/schemas/AuthRoleName" }, description: "Vai trò bị từ chối (403); RULE sinh case AUTH cho từng vai trò" }
+    AuthContext:
+      type: object
+      additionalProperties: false
+      required: [scheme, default_role, roles, operations]
+      description: |
+        Ngữ cảnh xác thực gửi cho bộ sinh (ADR-0006), KHÔNG chứa token. Lượt chạy định nghĩa biến
+        `auth_token_<role>` cho mỗi vai trò; step gọi operation có security mà không có header Authorization
+        (và case không phải AUTH) được thêm `Authorization: Bearer {{auth_token_<role>}}`.
+      properties:
+        scheme: { type: string, enum: [bearer] }
+        default_role: { $ref: "#/components/schemas/AuthRoleName" }
+        roles:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, description]
+            properties:
+              name: { $ref: "#/components/schemas/AuthRoleName" }
+              description: { type: [string, "null"], maxLength: 500 }
+        operations: { type: array, items: { $ref: "#/components/schemas/AuthOperation" } }
+    ExperimentAuthFixture:
+      type: object
+      additionalProperties: false
+      required: [scheme, default_role, roles, operations]
+      description: |
+        Fixture xác thực của benchmark (`auth` trong ground-truth.yaml), snapshot khi tạo thực nghiệm (ADR-0006).
+        Token là token synthetic công khai của sandbox benchmark, không phải secret.
+      properties:
+        scheme: { type: string, enum: [bearer] }
+        default_role: { $ref: "#/components/schemas/AuthRoleName" }
+        roles:
+          type: object
+          minProperties: 1
+          propertyNames: { pattern: "^[a-z][a-z0-9_]{0,30}$" }
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required: [token, description]
+            properties:
+              token: { type: string, minLength: 1 }
+              description: { type: [string, "null"], maxLength: 500 }
+        operations: { type: array, items: { $ref: "#/components/schemas/AuthOperation" } }
+    ExperimentBusinessRule:
+      type: object
+      additionalProperties: false
+      required: [code, description, method, path]
+      description: Business rule của benchmark (`business_rules` trong ground-truth.yaml), snapshot khi tạo thực nghiệm (ADR-0006)
+      properties:
+        code: { type: string, minLength: 1, maxLength: 50 }
+        description: { type: string, minLength: 1, maxLength: 5000 }
+        method:
+          oneOf:
+            - { $ref: "#/components/schemas/HttpMethod" }
+            - { type: "null" }
+        path: { type: [string, "null"], pattern: "^/" }
+    GenerationStats:
+      type: object
+      additionalProperties: false
+      required: [generated, valid, invalid, repaired, duplicates]
+      properties:
+        generated: { type: integer, minimum: 0 }
+        valid: { type: integer, minimum: 0 }
+        invalid: { type: integer, minimum: 0 }
+        repaired: { type: integer, minimum: 0 }
+        duplicates: { type: integer, minimum: 0 }
+    GenerationJob:
+      type: object
+      additionalProperties: false
+      required: [id, project_id, api_spec_id, test_suite_id, strategy, status, params, stats, error, started_at, finished_at, created_by, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        project_id: { type: integer, format: int64, minimum: 1 }
+        api_spec_id: { type: integer, format: int64, minimum: 1 }
+        test_suite_id: { type: integer, format: int64, minimum: 1 }
+        strategy: { $ref: "#/components/schemas/GenerationStrategy" }
+        status: { $ref: "#/components/schemas/GenerationJobStatus" }
+        params: { $ref: "#/components/schemas/GenerationParams" }
+        stats:
+          oneOf:
+            - { $ref: "#/components/schemas/GenerationStats" }
+            - { type: "null" }
+        error: { type: [string, "null"] }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        created_by: { type: integer, format: int64, minimum: 1 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        summary:
+          description: Tiến độ và thống kê cho màn hình M11 (S6-04); chỉ có ở GET /generation-jobs/{generationJobId}
+          allOf:
+            - { $ref: "#/components/schemas/GenerationJobSummary" }
+    GenerationJobSummary:
+      type: object
+      additionalProperties: false
+      required: [status, strategy, is_terminal, progress_percent, progress_label, counts, endpoints, llm, error_message, job_errors, duration_seconds, replayed]
+      properties:
+        status: { $ref: "#/components/schemas/GenerationJobStatus" }
+        strategy: { $ref: "#/components/schemas/GenerationStrategy" }
+        is_terminal: { type: boolean, description: "true khi SUCCEEDED, PARTIAL hoặc FAILED (§4.1); UI ngừng poll" }
+        progress_percent: { type: integer, minimum: 0, maximum: 100 }
+        progress_label: { type: string }
+        counts:
+          type: object
+          additionalProperties: false
+          required: [generated, valid, invalid, duplicates, repaired]
+          properties:
+            generated: { type: integer, minimum: 0 }
+            valid: { type: integer, minimum: 0 }
+            invalid: { type: integer, minimum: 0 }
+            duplicates: { type: integer, minimum: 0 }
+            repaired: { type: integer, minimum: 0 }
+        endpoints:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [endpoint_id, method, path, generated, valid, invalid, duplicates, repaired, has_error, errors, note]
+            properties:
+              endpoint_id: { type: integer, format: int64, minimum: 1 }
+              method: { type: string }
+              path: { type: string }
+              generated: { type: integer, minimum: 0 }
+              valid: { type: integer, minimum: 0, description: "Số case VALID hoặc APPROVED" }
+              invalid: { type: integer, minimum: 0 }
+              duplicates: { type: integer, minimum: 0 }
+              repaired: { type: integer, minimum: 0 }
+              has_error: { type: boolean, description: "Job đã kết thúc mà endpoint không có case hợp lệ" }
+              errors: { type: array, items: { type: string } }
+              note: { type: [string, "null"], description: "Ghi chú khi endpoint không có case mới vì mọi case sinh ra trùng với case VALID/APPROVED đã có trong suite (không phải lỗi)" }
+        llm:
+          type: object
+          additionalProperties: false
+          required: [calls, generate_calls, repair_calls, failed_calls, prompt_tokens, completion_tokens, total_tokens, total_latency_ms, avg_latency_ms, models]
+          properties:
+            calls: { type: integer, minimum: 0 }
+            generate_calls: { type: integer, minimum: 0 }
+            repair_calls: { type: integer, minimum: 0 }
+            failed_calls: { type: integer, minimum: 0 }
+            prompt_tokens: { type: integer, minimum: 0 }
+            completion_tokens: { type: integer, minimum: 0 }
+            total_tokens: { type: integer, minimum: 0 }
+            total_latency_ms: { type: integer, minimum: 0 }
+            avg_latency_ms: { type: integer, minimum: 0 }
+            models: { type: array, items: { type: string } }
+        error_message: { type: [string, "null"], description: "Mô tả lỗi tiếng Việt của job FAILED" }
+        job_errors: { type: array, items: { type: string } }
+        duration_seconds: { type: [integer, "null"], minimum: 0, description: "null khi job chưa kết thúc hoặc là job nạp lại từ bản ghi (replayed)" }
+        replayed:
+          type: boolean
+          description: "true khi job nạp lại một job LLM/HYBRID đã ghi của thực nghiệm chính thức (dữ liệu demo, không gọi LLM): llm_call_logs là các lời gọi đã ghi, không có thời lượng sinh"
+    GenerationJobCreate:
+      type: object
+      additionalProperties: false
+      required: [strategy, params]
+      properties:
+        strategy: { $ref: "#/components/schemas/GenerationStrategy" }
+        params: { $ref: "#/components/schemas/GenerationParams" }
+    GenerationJobResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/GenerationJob" } } }
+
+    TestTechnique: { type: string, enum: [HAPPY_PATH, BOUNDARY, EQUIVALENCE, INVALID_INPUT, MISSING_REQUIRED, TYPE_MISMATCH, AUTH, BUSINESS_RULE, SEQUENCE] }
+    TestCaseSource: { type: string, enum: [RULE, LLM, HYBRID, MANUAL] }
+    TestCaseStatus: { type: string, enum: [VALID, INVALID, DUPLICATE, APPROVED, ARCHIVED] }
+    TestCase:
+      type: object
+      additionalProperties: false
+      required: [id, test_suite_id, endpoint_id, generation_job_id, source, technique, title, dsl, dsl_version, fingerprint, status, validation_errors, repair_attempts, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        test_suite_id: { type: integer, format: int64, minimum: 1 }
+        endpoint_id: { type: integer, format: int64, minimum: 1 }
+        generation_job_id: { type: [integer, "null"], format: int64, minimum: 1 }
+        source: { $ref: "#/components/schemas/TestCaseSource" }
+        technique: { $ref: "#/components/schemas/TestTechnique" }
+        title: { type: string, minLength: 1, maxLength: 255 }
+        dsl:
+          description: Payload DSL của test case. Có thể chưa tuân thủ đầy đủ schema DSL khi status là INVALID (phục vụ hiển thị lỗi và sửa tay trên M10)
+          type: object
+          additionalProperties: true
+        dsl_version: { type: string, const: "1.0" }
+        fingerprint:
+          type: [string, "null"]
+          pattern: "^[a-f0-9]{64}$"
+          description: Mã băm SHA-256 chuẩn hóa phục vụ dedup (null khi case INVALID chưa thể chuẩn hóa)
+        status: { $ref: "#/components/schemas/TestCaseStatus" }
+        validation_errors: { type: [array, "null"], items: { type: string } }
+        repair_attempts: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TestCasePatch:
+      type: object
+      additionalProperties: false
+      required: [dsl]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 255, description: "Tiêu đề mới, được ghi cả vào `dsl.title`; bỏ trống hoặc giữ nguyên tiêu đề hiện tại thì tiêu đề lấy theo `title` trong DSL (cột `title` và `dsl.title` luôn trùng nhau)" }
+        dsl:
+          description: Payload DSL mới để cập nhật và chạy thẩm định lại
+          type: object
+          additionalProperties: true
+    TestCaseResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/TestCase" } } }
+    TestCaseCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/TestCase" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    TestRunStatus: { type: string, enum: [QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED] }
+    TestVerdict: { type: string, enum: [PASS, FAIL, ERROR, SKIPPED] }
+    TestRunTotals:
+      type: object
+      additionalProperties: false
+      required: [total, pass, fail, error, skipped]
+      properties:
+        total: { type: integer, minimum: 0 }
+        pass: { type: integer, minimum: 0 }
+        fail: { type: integer, minimum: 0 }
+        error: { type: integer, minimum: 0 }
+        skipped: { type: integer, minimum: 0 }
+    TestRun:
+      type: object
+      additionalProperties: false
+      required: [id, test_suite_id, target_base_url, benchmark_variant, status, totals, triggered_by, started_at, finished_at, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        test_suite_id: { type: integer, format: int64, minimum: 1 }
+        target_base_url: { type: string, format: uri }
+        benchmark_variant: { type: [string, "null"] }
+        status: { $ref: "#/components/schemas/TestRunStatus" }
+        totals:
+          oneOf:
+            - { $ref: "#/components/schemas/TestRunTotals" }
+            - { type: "null" }
+        triggered_by: { type: integer, format: int64, minimum: 1 }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    TestRunCreate:
+      type: object
+      additionalProperties: false
+      required: [target_base_url]
+      properties:
+        target_base_url: { type: string, format: uri }
+        benchmark_variant: { type: [string, "null"] }
+        test_case_ids: { type: array, minItems: 1, uniqueItems: true, items: { type: integer, format: int64, minimum: 1 } }
+    TestRunResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/TestRun" } } }
+    AssertionResult:
+      type: object
+      additionalProperties: false
+      required: [type, passed, expected, actual, message]
+      properties:
+        type: { type: string }
+        passed: { type: boolean }
+        expected: {}
+        actual: {}
+        message: { type: [string, "null"] }
+    TestResult:
+      type: object
+      additionalProperties: false
+      required: [id, test_run_id, test_case_id, verdict, duration_ms, request_log, response_log, assertion_results, error_message, created_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        test_run_id: { type: integer, format: int64, minimum: 1 }
+        test_case_id: { type: integer, format: int64, minimum: 1 }
+        verdict: { $ref: "#/components/schemas/TestVerdict" }
+        duration_ms: { type: integer, minimum: 0 }
+        request_log: { $ref: "#/components/schemas/JsonObject" }
+        response_log: { $ref: "#/components/schemas/JsonObject", description: Body bị cắt ở 64 KB; Authorization được che }
+        assertion_results: { type: array, items: { $ref: "#/components/schemas/AssertionResult" } }
+        error_message: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+    TestResultCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/TestResult" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+    TestRunReport:
+      type: object
+      additionalProperties: false
+      required: [run, summary, results]
+      properties:
+        run: { $ref: "#/components/schemas/TestRun" }
+        summary: { $ref: "#/components/schemas/TestRunReportSummary" }
+        results: { type: array, items: { $ref: "#/components/schemas/TestResult" } }
+    TestRunReportSummary:
+      type: object
+      additionalProperties: false
+      description: >-
+        Tổng hợp của báo cáo M13 (S8-01), tính từ test_results đã lưu. Lần chạy chỉ lưu số liệu tổng (bản ghi
+        thực nghiệm chính thức của demo, không có test_results) lấy số đếm từ run.totals và có results_available = false
+      required: [total, pass, fail, error, skipped, executed, pass_rate, wall_duration_ms, total_duration_ms, average_duration_ms, response_time_buckets, endpoints, results_available]
+      properties:
+        total: { type: integer, minimum: 0 }
+        pass: { type: integer, minimum: 0 }
+        fail: { type: integer, minimum: 0 }
+        error: { type: integer, minimum: 0 }
+        skipped: { type: integer, minimum: 0 }
+        executed: { type: integer, minimum: 0, description: Số ca không bị SKIPPED }
+        pass_rate: { type: [number, "null"], minimum: 0, maximum: 100, description: "Phần trăm PASS / tổng số ca (null khi chưa có kết quả)" }
+        wall_duration_ms:
+          type: [integer, "null"]
+          minimum: 0
+          description: >-
+            finished_at − started_at; null khi lần chạy chưa kết thúc, hoặc khi lần chạy chỉ lưu số liệu tổng mà
+            không có thời lượng (started_at = finished_at), vì thời lượng khi đó là không biết chứ không phải 0 ms
+        total_duration_ms: { type: integer, minimum: 0 }
+        average_duration_ms: { type: [integer, "null"], minimum: 0 }
+        response_time_buckets:
+          type: object
+          additionalProperties: false
+          required: [lt_50, between_50_200, gt_200]
+          properties:
+            lt_50: { type: integer, minimum: 0 }
+            between_50_200: { type: integer, minimum: 0 }
+            gt_200: { type: integer, minimum: 0 }
+        results_available:
+          type: boolean
+          description: "false khi lần chạy chỉ lưu số liệu tổng (không có kết quả từng test case); thời lượng từng ca và endpoints khi đó trống"
+        endpoints:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [endpoint_id, method, path, total, pass, fail, error, skipped, status_codes]
+            properties:
+              endpoint_id: { type: integer, format: int64, minimum: 1 }
+              method: { $ref: "#/components/schemas/HttpMethod" }
+              path: { type: string }
+              total: { type: integer, minimum: 0 }
+              pass: { type: integer, minimum: 0 }
+              fail: { type: integer, minimum: 0 }
+              error: { type: integer, minimum: 0 }
+              skipped: { type: integer, minimum: 0 }
+              status_codes: { type: array, items: { type: integer, minimum: 100, maximum: 599 } }
+
+    ExperimentStatus: { type: string, enum: [PLANNED, RUNNING, COMPLETED, FAILED] }
+    ExperimentConfig:
+      type: object
+      additionalProperties: false
+      required: [seed, temperature, repetitions]
+      properties:
+        model: { type: [string, "null"] }
+        seed: { type: integer, description: "Seed lần lặp 1 (khi trả về luôn bằng seeds[0])" }
+        seeds:
+          type: [array, "null"]
+          minItems: 1
+          maxItems: 10
+          uniqueItems: true
+          items: { type: integer, minimum: 0 }
+          description: |
+            Seed từng lần lặp (lần lặp r dùng seeds[r-1]). Tùy chọn khi tạo: bỏ trống thì dùng giao thức
+            EXPERIMENT_SEEDS (42, 1024, 2026), seed khác seed đầu giao thức thay cho lần lặp 1; thiếu thì nối tiếp
+            seed cuối + 1. Luôn có khi trả về (ADR-0003).
+        temperature: { type: number, minimum: 0, maximum: 2 }
+        repetitions: { type: integer, minimum: 3, maximum: 10 }
+        auth:
+          readOnly: true
+          oneOf:
+            - { $ref: "#/components/schemas/ExperimentAuthFixture" }
+            - { type: "null" }
+          description: |
+            Chỉ đọc (ADR-0006): fixture xác thực của ground-truth.yaml lúc tạo thực nghiệm; null khi benchmark không có
+            endpoint yêu cầu xác thực. Không gửi được qua POST /experiments.
+        business_rules:
+          readOnly: true
+          type: array
+          items: { $ref: "#/components/schemas/ExperimentBusinessRule" }
+          description: Chỉ đọc (ADR-0006) — business rules của ground-truth.yaml lúc tạo; LLM/HYBRID dùng snapshot này
+        reset_per_case:
+          readOnly: true
+          type: boolean
+          description: |
+            Chỉ đọc (ADR-0006, bổ sung 2026-10-12): true thì mỗi test case của lượt chạy thực nghiệm (bản sạch và mọi
+            biến thể bug, mọi chiến lược) bắt đầu từ dữ liệu seed (`POST <variant>/__admin/reset` trước từng case). Lấy
+            từ EXPERIMENT_RESET_PER_CASE lúc tạo; thiếu (thực nghiệm tạo trước bổ sung) nghĩa là false.
+    ExperimentMetrics:
+      type: object
+      additionalProperties: false
+      description: |
+        Chỉ số §11. Các tỉ lệ là trung bình qua các lần lặp (0..1, mẫu số bằng 0 cho 0); riêng
+        `false_positive_rate` và `redundancy` (càng thấp càng tốt) bỏ qua lần lặp có mẫu số bằng 0 và bị
+        lược bỏ khi không lần lặp nào áp dụng được; `stddev` là độ lệch chuẩn mẫu của từng chỉ số;
+        `repetitions` là giá trị từng lần lặp. Khi thực nghiệm FAILED chỉ có `error` (và có thể có dữ liệu một phần).
+      properties:
+        validity_rate: { type: number, minimum: 0, maximum: 1 }
+        executable_rate: { type: number, minimum: 0, maximum: 1 }
+        false_positive_rate: { type: number, minimum: 0, maximum: 1 }
+        bug_detection_rate: { type: number, minimum: 0, maximum: 1 }
+        mutation_score: { type: number, minimum: 0, maximum: 1 }
+        endpoint_coverage: { type: number, minimum: 0, maximum: 1 }
+        status_code_coverage: { type: number, minimum: 0, maximum: 1 }
+        redundancy: { type: number, minimum: 0, maximum: 1 }
+        generation_time_ms: { type: integer, minimum: 0 }
+        execution_time_ms: { type: integer, minimum: 0 }
+        prompt_tokens: { type: integer, minimum: 0 }
+        completion_tokens: { type: integer, minimum: 0 }
+        bugs_total: { type: integer, minimum: 0 }
+        bugs_detected_mean: { type: number, minimum: 0 }
+        stddev:
+          type: object
+          description: Độ lệch chuẩn mẫu (n - 1) qua các lần lặp, cùng khóa với các chỉ số ở trên
+          additionalProperties: { type: number, minimum: 0 }
+        repetitions:
+          type: array
+          description: Chỉ số và bộ đếm thô của từng lần lặp
+          items: { $ref: "#/components/schemas/ExperimentRepetitionMetrics" }
+        error: { type: string, description: Lý do thất bại (chỉ khi status = FAILED) }
+    ExperimentRepetitionMetrics:
+      type: object
+      additionalProperties: false
+      required: [repetition, validity_rate, executable_rate, false_positive_rate, bug_detection_rate, mutation_score, endpoint_coverage, status_code_coverage, redundancy]
+      properties:
+        repetition: { type: integer, minimum: 1 }
+        seed: { type: [integer, "null"] }
+        validity_rate: { type: number, minimum: 0, maximum: 1 }
+        executable_rate: { type: number, minimum: 0, maximum: 1 }
+        false_positive_rate: { type: number, minimum: 0, maximum: 1 }
+        bug_detection_rate: { type: number, minimum: 0, maximum: 1 }
+        mutation_score: { type: number, minimum: 0, maximum: 1 }
+        endpoint_coverage: { type: number, minimum: 0, maximum: 1 }
+        status_code_coverage: { type: number, minimum: 0, maximum: 1 }
+        redundancy: { type: number, minimum: 0, maximum: 1 }
+        generation_time_ms: { type: integer, minimum: 0 }
+        execution_time_ms: { type: integer, minimum: 0 }
+        prompt_tokens: { type: integer, minimum: 0 }
+        completion_tokens: { type: integer, minimum: 0 }
+        generated: { type: integer, minimum: 0 }
+        valid: { type: integer, minimum: 0 }
+        duplicate: { type: integer, minimum: 0 }
+        clean_pass: { type: integer, minimum: 0 }
+        clean_fail: { type: integer, minimum: 0 }
+        clean_error: { type: integer, minimum: 0 }
+        bugs_total: { type: integer, minimum: 0 }
+        bugs_detected: { type: integer, minimum: 0 }
+    Experiment:
+      type: object
+      additionalProperties: false
+      required: [id, name, benchmark_id, strategy, config, status, metrics, started_at, finished_at, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        benchmark_id: { type: integer, format: int64, minimum: 1 }
+        strategy: { $ref: "#/components/schemas/GenerationStrategy" }
+        config: { $ref: "#/components/schemas/ExperimentConfig" }
+        status: { $ref: "#/components/schemas/ExperimentStatus" }
+        metrics:
+          oneOf:
+            - { $ref: "#/components/schemas/ExperimentMetrics" }
+            - { type: "null" }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        repetitions_data:
+          type: [array, "null"]
+          items: { $ref: "#/components/schemas/ExperimentRepetition" }
+          description: Dữ liệu liên kết chi tiết từng lần lặp (generation job, test suite, clean run, bug runs)
+        bug_detections:
+          type: [array, "null"]
+          items: { $ref: "#/components/schemas/ExperimentBugDetection" }
+          description: Chi tiết kết quả phát hiện lỗi cho từng bug và từng lần lặp
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ExperimentRepetition:
+      type: object
+      additionalProperties: false
+      required: [repetition, seed, generation_job_id, test_suite_id, clean_test_run_id, bug_runs]
+      properties:
+        repetition: { type: integer, minimum: 1 }
+        seed: { type: integer }
+        generation_job_id: { type: integer, format: int64, minimum: 1, description: Job của chiến lược (job cuối) }
+        generation_job_ids:
+          type: array
+          minItems: 1
+          items: { type: integer, format: int64, minimum: 1 }
+          description: "Mọi job đã nạp case vào suite của lần lặp, theo thứ tự (HYBRID: job RULE seed rồi job HYBRID) — ADR-0006"
+        test_suite_id: { type: integer, format: int64, minimum: 1 }
+        clean_test_run_id: { type: [integer, "null"], format: int64, minimum: 1, description: "null khi lần lặp chưa chạy xong biến thể sạch" }
+        bug_runs:
+          type: object
+          additionalProperties: { type: integer, format: int64, minimum: 1 }
+          description: "Bản đồ mã bug (bug_code) sang test_run_id của lần chạy trên biến thể bug tương ứng"
+    ExperimentBugDetection:
+      type: object
+      additionalProperties: false
+      required: [id, experiment_id, benchmark_bug_id, repetition, detected, clean_test_run_id, bug_test_run_id, created_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        experiment_id: { type: integer, format: int64, minimum: 1 }
+        benchmark_bug_id: { type: integer, format: int64, minimum: 1 }
+        repetition: { type: integer, minimum: 1 }
+        detected: { type: boolean }
+        clean_test_run_id: { type: integer, format: int64, minimum: 1 }
+        bug_test_run_id: { type: integer, format: int64, minimum: 1 }
+        detecting_test_case_ids: { type: [array, "null"], items: { type: integer, format: int64 } }
+        created_at: { type: string, format: date-time }
+    ExperimentCreate:
+      type: object
+      additionalProperties: false
+      required: [name, benchmark_id, strategy, config]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        benchmark_id: { type: integer, format: int64, minimum: 1 }
+        strategy: { $ref: "#/components/schemas/GenerationStrategy" }
+        config: { $ref: "#/components/schemas/ExperimentConfig" }
+    ExperimentResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/Experiment" } } }
+    ExperimentExport:
+      type: object
+      additionalProperties: false
+      required: [format_version, exported_at, experiments]
+      properties:
+        format_version: { type: string, enum: ["1.0"] }
+        exported_at: { type: string, format: date-time }
+        experiments:
+          type: array
+          items: { $ref: "#/components/schemas/ExperimentExportItem" }
+    ExperimentExportItem:
+      type: object
+      additionalProperties: false
+      required: [id, name, strategy, status, benchmark, config, started_at, finished_at, metrics, repetitions, bug_detections]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string }
+        strategy: { $ref: "#/components/schemas/GenerationStrategy" }
+        status: { $ref: "#/components/schemas/ExperimentStatus" }
+        benchmark:
+          type: object
+          additionalProperties: false
+          required: [id, slug, name, version, bugs_total]
+          properties:
+            id: { type: integer, format: int64, minimum: 1 }
+            slug: { type: string }
+            name: { type: string }
+            version: { type: string }
+            bugs_total: { type: integer, minimum: 0 }
+        config:
+          type: object
+          additionalProperties: false
+          required: [model, temperature, seed, seeds, repetitions, auth, business_rules, reset_per_case]
+          properties:
+            model: { type: [string, "null"] }
+            temperature: { type: [number, "null"] }
+            seed: { type: [integer, "null"] }
+            seeds: { type: array, items: { type: integer } }
+            repetitions: { type: integer, minimum: 0 }
+            auth:
+              description: Snapshot fixture xác thực (ADR-0006); null khi benchmark không có hoặc thực nghiệm tạo trước ADR-0006
+              oneOf:
+                - { $ref: "#/components/schemas/ExperimentAuthFixture" }
+                - { type: "null" }
+            business_rules:
+              description: |
+                Snapshot business rules (ADR-0006). null khi thực nghiệm tạo trước ADR-0006: không có snapshot, các
+                lần lặp LLM/HYBRID đã đọc business rules hiện hành của project lúc chạy (không có nghĩa là "không có
+                rule"). Mảng rỗng: benchmark không khai báo business rule.
+              type: [array, "null"]
+              items: { $ref: "#/components/schemas/ExperimentBusinessRule" }
+            reset_per_case:
+              type: boolean
+              description: Reset sandbox trước từng test case (ADR-0006, bổ sung 2026-10-12); false với thực nghiệm tạo trước bổ sung
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        metrics:
+          oneOf:
+            - { $ref: "#/components/schemas/ExperimentMetrics" }
+            - { type: "null" }
+        repetitions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [repetition, seed, generation_job_id, generation_job_ids, test_suite_id, clean_test_run_id, bug_runs, metrics]
+            properties:
+              repetition: { type: integer, minimum: 1 }
+              seed: { type: [integer, "null"] }
+              generation_job_id: { type: [integer, "null"], format: int64 }
+              generation_job_ids:
+                type: array
+                items: { type: integer, format: int64, minimum: 1 }
+                description: "Mọi job sinh của lần lặp theo thứ tự (HYBRID: RULE seed, rồi HYBRID) — ADR-0006"
+              test_suite_id: { type: [integer, "null"], format: int64 }
+              clean_test_run_id: { type: [integer, "null"], format: int64 }
+              bug_runs:
+                type: object
+                additionalProperties: { type: integer, format: int64, minimum: 1 }
+              metrics:
+                oneOf:
+                  - { $ref: "#/components/schemas/ExperimentRepetitionMetrics" }
+                  - { type: "null" }
+        bug_detections:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [repetition, benchmark_bug_id, bug_code, category, method, path, detected, clean_test_run_id, bug_test_run_id, detecting_test_case_ids]
+            properties:
+              repetition: { type: integer, minimum: 1 }
+              benchmark_bug_id: { type: integer, format: int64, minimum: 1 }
+              bug_code: { type: [string, "null"] }
+              category: { type: [string, "null"] }
+              method: { type: [string, "null"] }
+              path: { type: [string, "null"] }
+              detected: { type: boolean }
+              clean_test_run_id: { type: integer, format: int64, minimum: 1 }
+              bug_test_run_id: { type: integer, format: int64, minimum: 1 }
+              detecting_test_case_ids: { type: array, items: { type: integer, format: int64 } }
+    ExperimentCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Experiment" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    UserRole: { type: string, enum: [ADMIN, TESTER] }
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, name, email, role, is_active, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        role: { $ref: "#/components/schemas/UserRole" }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    UserCreate:
+      type: object
+      additionalProperties: false
+      required: [name, email, password, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, format: password, minLength: 12, maxLength: 255, writeOnly: true }
+        role: { $ref: "#/components/schemas/UserRole" }
+    UserPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        role: { $ref: "#/components/schemas/UserRole" }
+        is_active: { type: boolean }
+    UserResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/User" } } }
+    UserCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/User" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }
+
+    AllowedTarget:
+      type: object
+      additionalProperties: false
+      required: [id, host, port, note, created_by, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        host: { type: string, minLength: 1, maxLength: 255 }
+        port: { type: [integer, "null"], minimum: 1, maximum: 65535 }
+        note: { type: [string, "null"], maxLength: 1000 }
+        created_by: { type: integer, format: int64, minimum: 1 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    AllowedTargetWrite:
+      type: object
+      additionalProperties: false
+      required: [host]
+      properties:
+        host: { type: string, minLength: 1, maxLength: 255 }
+        port: { type: [integer, "null"], minimum: 1, maximum: 65535 }
+        note: { type: [string, "null"], maxLength: 1000 }
+    AllowedTargetResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/AllowedTarget" } } }
+    AllowedTargetCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/AllowedTarget" } }
+
+    Benchmark:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name, description, base_url, version, created_at, updated_at]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        slug: { type: string, maxLength: 100, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+        base_url: { type: string, format: uri }
+        version: { type: string, minLength: 1, maxLength: 20 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    BenchmarkCreate:
+      type: object
+      additionalProperties: false
+      required: [slug, name, base_url, version]
+      properties:
+        slug: { type: string, maxLength: 100, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        description: { type: [string, "null"], maxLength: 2000 }
+        base_url: { type: string, format: uri }
+        version: { type: string, minLength: 1, maxLength: 20, description: "Phiên bản dạng số được chuẩn hóa thành v<số> trước khi lưu (\"1.0\" → \"v1.0\"), chuỗi khác chỉ bỏ khoảng trắng; độ dài tính trên giá trị đã chuẩn hóa" }
+    BenchmarkResponse: { type: object, additionalProperties: false, required: [data], properties: { data: { $ref: "#/components/schemas/Benchmark" } } }
+    BenchmarkCollectionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Benchmark" } }
+        meta: { $ref: "#/components/schemas/PaginationMeta" }

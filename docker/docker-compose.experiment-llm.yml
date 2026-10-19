@@ -1,0 +1,59 @@
+# Experiment overrides for `make experiment` / `make up-experiment` (S12-02). Hand-written
+# (unlike docker-compose.experiment.yml, which is generated). Used together with:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.experiment.yml \
+#     -f docker/docker-compose.experiment-llm.yml --env-file .env ...
+#
+# Pins the experiment protocol of docs/architecture/experiment-design.md §4.2 on top of the
+# local env files, whatever a developer put in web/.env or ai-service/.env:
+# - ai-service talks to an OpenAI-compatible LLM: by default a host-native Ollama reached at
+#   host.docker.internal (extra_hosts in docker-compose.yml), or the dockerized `ollama`
+#   service (profile llm) when EXPERIMENT_LLM_BASE_URL=http://ollama:11434/v1;
+# - web and worker use the real ai-service, real target HTTP client and the single-bug
+#   sandboxes of docker-compose.experiment.yml.
+# The Makefile exports the EXPERIMENT_* variables; the defaults below match the protocol.
+# No secret here: AI_LLM_API_KEY (if any) still comes from the uncommitted ai-service/.env.
+
+x-experiment-web-env: &experiment-web-env
+  AI_SERVICE_DRIVER: http
+  AI_SERVICE_URL: http://ai-service:8001
+  TARGET_CLIENT_DRIVER: http
+  BENCHMARK_SANDBOX_DRIVER: url_template
+  BENCHMARK_VARIANT_URL_TEMPLATE: "http://{slug}-{code_lower}:8000"
+  BENCHMARK_CLEAN_URL_TEMPLATE: "http://{slug}:8000"
+  EXPERIMENT_SEEDS: ${EXPERIMENT_SEEDS:-42,1024,2026}
+  # ADR-0006 addendum 2026-10-12: reset the sandbox before every test case of an experiment run.
+  EXPERIMENT_RESET_PER_CASE: ${EXPERIMENT_RESET_PER_CASE:-true}
+  # Must be >= AI_GENERATE_BUDGET_SECONDS of ai-service + 60 s (web refuses LLM/HYBRID generation
+  # otherwise) and below the 1500 s GenerateTestsJob / RunExperimentStepJob timeouts (S11-02, ADR-0005).
+  AI_SERVICE_TIMEOUT: ${EXPERIMENT_AI_SERVICE_TIMEOUT:-1380}
+
+services:
+  ai-service:
+    environment:
+      AI_LLM_PROVIDER: ${EXPERIMENT_LLM_PROVIDER:-openai_compatible}
+      AI_LLM_BASE_URL: ${EXPERIMENT_LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      AI_LLM_MODEL: ${EXPERIMENT_MODEL:-qwen2.5-coder:7b}
+      AI_LLM_TEMPERATURE: ${EXPERIMENT_TEMPERATURE:-0.2}
+      # Protocol (experiment-design §4.2 as amended by ADR-0005): one GENERATE call per endpoint of
+      # at most AI_LLM_CASES_PER_CALL cases, 300 s per LLM call, 1320 s per POST /v1/generate,
+      # at most 2 repairs. Chain: 300 < 1320 <= AI_SERVICE_TIMEOUT (1380) - 60 < job 1500.
+      # Overrides (make experiment LLM_TIMEOUT=... GENERATE_BUDGET=...) are recorded in
+      # environment.txt of the results folder.
+      AI_LLM_TIMEOUT_SECONDS: ${EXPERIMENT_LLM_TIMEOUT_SECONDS:-300}
+      AI_GENERATE_BUDGET_SECONDS: ${EXPERIMENT_GENERATE_BUDGET_SECONDS:-1320}
+      AI_MAX_REPAIR_ATTEMPTS: "2"
+      AI_LLM_CASES_PER_CALL: ${EXPERIMENT_LLM_CASES_PER_CALL:-3}
+      AI_LLM_OUTPUT_TOKENS_PER_CASE: "400"
+      # Must equal the context of the Ollama that serves the model (>= 16384: native
+      # OLLAMA_CONTEXT_LENGTH=16384 ollama serve, or the compose `ollama` service). 36000 prompt
+      # characters (~12k tokens) plus one call's max_tokens fit 16384.
+      AI_LLM_CONTEXT_TOKENS: ${EXPERIMENT_LLM_CONTEXT_TOKENS:-16384}
+      AI_MAX_PROMPT_CHARS: "36000"
+
+  web:
+    environment:
+      <<: *experiment-web-env
+
+  worker:
+    environment:
+      <<: *experiment-web-env
