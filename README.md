@@ -14,6 +14,8 @@ The repo also has three small benchmark APIs with 32 seeded bugs (one Docker con
 
 Everything needed to check or rerun the paper's numbers is in [`paper/`](paper/README.md).
 
+This is a release repository. The code was moved here from my internal development repository when the paper was prepared, so the history here starts with the release and does not show how the platform was developed.
+
 ## What's where
 
 ```
@@ -76,3 +78,8 @@ A bug counts as found when some test passes on the clean API and fails on the co
 ## License
 
 MIT, see [LICENSE](LICENSE). If you use the code or the data, [CITATION.cff](CITATION.cff) has the details.
+
+## Contact
+
+Nguyen Quoc Long, School of Data & Artificial Intelligence (SDA), Duy Tan University, Da Nang, Vietnam.
+nguyenquoclong1@dtu.edu.vn (or quoclongdng@gmail.com)

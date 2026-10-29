@@ -7,6 +7,14 @@ authors:
     given-names: Quoc Long
     email: nguyenquoclong1@dtu.edu.vn
     affiliation: "School of Data & Artificial Intelligence, Duy Tan University, Da Nang, Vietnam"
+    orcid: "https://orcid.org/0009-0004-3407-1728"
+contact:
+  - family-names: Nguyen
+    given-names: Quoc Long
+    email: nguyenquoclong1@dtu.edu.vn
+  - family-names: Nguyen
+    given-names: Quoc Long
+    email: quoclongdng@gmail.com
 version: "1.0-paper"
 date-released: "2026-10-19"
 license: MIT
